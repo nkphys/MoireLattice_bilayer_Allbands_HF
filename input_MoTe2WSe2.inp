@@ -1,0 +1,17 @@
+MaterialName=MoTe2WSe2Bilayer
+Valley=-1
+Layer_Potential_bottom_Vz_in_meV=0.0
+Layer_Potential_top_Vz_in_meV=-20.0
+V_param_bottom_in_meV=7.0
+V_param_top_in_meV=0.0
+Psi_param_in_radians=-0.2443458
+omega_param_in_meV=12.0
+Grid_ReciprocalLattice_L1=12
+Grid_ReciprocalLattice_L2=12
+a_monolayer_in_angstorm=100000
+Twist_Theta_in_radians=100000
+MStar_top_in_RestMass=0.35
+MStar_bottom_in_RestMass=0.65
+BZ_L1=144
+BZ_L2=144
+eps_DE=100

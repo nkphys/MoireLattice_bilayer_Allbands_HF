@@ -1,0 +1,42 @@
+MaterialName=MoTe2Homobilayer
+Layer_Potential_bottom_Vz_in_meV=0.0
+Layer_Potential_top_Vz_in_meV=-0.0
+
+#8.0
+V_param_bottom_in_meV=8.0
+V_param_top_in_meV=8.0
+
+Psi_param_in_radians=-1.56381368
+
+omega_param_in_meV=-8.5
+#-8.5
+
+Grid_moireReciprocalLattice_L1=9
+Grid_moireReciprocalLattice_L2=9
+a_monolayer_in_angstorm=3.472
+Twist_Theta_in_radians=0.0261
+#2.5=0.043633
+#1.5=0.0261799
+#4.5=0.07853975
+
+MStar_top_in_RestMass=0.62
+MStar_bottom_in_RestMass=0.62
+moire_BZ_L1=6
+moire_BZ_L2=6
+
+MagneticUnitCell_NMat_row1=1 0
+MagneticUnitCell_NMat_row2=0 1
+
+No_of_bands_used_for_HartreeFock=3
+eps_DE=15.0
+distance_to_gate_in_angstorm=200
+
+
+holedensity_per_moire_unit_cell=1.0
+Temperature_in_Kelvin=0.00001
+HF_convergence_error=0.0000001
+SimpleMixing_alpha=0.5
+#alpha*new  + (1-alpha)*old
+Max_HFIterations=10000
+RandomSeed=4
+
