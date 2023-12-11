@@ -20,6 +20,7 @@ public:
     bool FixingMu;
     double MuValueFixed;
 
+    double MagField_ZeemanSplitting;
 
     double Temperature; //in Kelvin
     double holesdensity_per_moire_unit_cell;  //per moire unit cell
@@ -55,6 +56,7 @@ void Parameters::Initialize(string inputfile_){
     Max_HFIterations = int(matchstring(inputfile_, "Max_HFIterations"));
     RandomSeed = int(matchstring(inputfile_, "RandomSeed"));
 
+    MagField_ZeemanSplitting=matchstring(inputfile_,"MagField_ZeemanSplitting");
     V_param_top = matchstring(inputfile_,"V_param_top_in_meV");
     V_param_bottom = matchstring(inputfile_,"V_param_bottom_in_meV");
     Psi_param = matchstring(inputfile_,"Psi_param_in_radians");

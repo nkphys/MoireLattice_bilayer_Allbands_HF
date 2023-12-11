@@ -1717,11 +1717,14 @@ void Hamiltonian::Create_Hamiltonian(int kset_ind){
                     row_ind = k_ind + 
                               k_sublattices[kset_ind].size()*band +
                               k_sublattices[kset_ind].size()*Nbands*spin;
-                    Ham_(row_ind, row_ind) += 1.0*BlochEigvals[spin][band][k_sublattices[kset_ind][k_ind]];
+                    Ham_(row_ind, row_ind) += 1.0*BlochEigvals[spin][band][k_sublattices[kset_ind][k_ind]]
+                                              + Parameters_.MagField_ZeemanSplitting*(spin);
                     //Ham_(row_ind, row_ind) += DispersionTriangularLattice(k_sublattices[kset_ind][k_ind]);
                 }
             }
         }
+
+
 
 
         //Hartree Term
@@ -1992,10 +1995,10 @@ for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
 for(int row_val=0;row_val<OParams[kSL_ind].n_row();row_val++){
 for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     if(row_val!=col_val){
-OParams[kSL_ind](row_val,col_val) = complex<double>(Myrandom(),Myrandom());
+OParams[kSL_ind](row_val,col_val) = 0.0;//complex<double>(Myrandom(),Myrandom());
     }
     else{
-OParams[kSL_ind](row_val,col_val) = complex<double>(Myrandom(),0.0);
+OParams[kSL_ind](row_val,col_val) = 0.5;//complex<double>(Myrandom(),0.0);
     }
 }}}
 
@@ -2296,7 +2299,7 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
 
                  Ux_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
                         conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                        EigVectors[q_kSL_ind_right](col_val_right,band);
+                        (EigVectors[q_kSL_ind_right](col_val_right,band));
                 }}
                 }}
                 Ux_k = Ux_k * (1.0 / abs(Ux_k));
@@ -2339,7 +2342,7 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
 
                  Uy_kpx += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
                         conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                        EigVectors[q_kSL_ind_right](col_val_right,band);
+                        (EigVectors[q_kSL_ind_right](col_val_right,band));
                 }}
                 }}
                 Uy_kpx = Uy_kpx * (1.0 / abs(Uy_kpx));
@@ -2382,7 +2385,7 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
 
                  Ux_kpy += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
                         conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                        EigVectors[q_kSL_ind_right](col_val_right,band);
+                        (EigVectors[q_kSL_ind_right](col_val_right,band));
                 }}
                 }}
                 Ux_kpy = Ux_kpy * (1.0 / abs(Ux_kpy));
@@ -2424,7 +2427,7 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
 
                 Uy_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
                         conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                        EigVectors[q_kSL_ind_right](col_val_right,band);
+                        (EigVectors[q_kSL_ind_right](col_val_right,band));
                 }}
                 }}
                 Uy_k = Uy_k * (1.0 / abs(Uy_k));
@@ -2502,7 +2505,7 @@ int q_ind1, q_ind2, q_ind;
 int q1_kSL_ind, q1_kSL_internal_ind;
 Mat_1_intpair k_path_;
 double kx_val, ky_val;
-k_path_ = Get_k_path(1);
+k_path_ = Get_k_path(2);
 
 int q_ind1_new, q_ind2_new, G1_ind_temp, G2_ind_temp;
 
@@ -2636,6 +2639,20 @@ int n1, n2;
         }
 
         } //path no. = 1
+
+
+
+
+        //path no. =2
+        if(path_no==2){
+            for(int n1_=0;n1_<L1_;n1_++){
+             for(int n2_=0;n2_<L2_;n2_++){
+            temp_pair.first = n1_;
+            temp_pair.second = n2_;
+            k_path.push_back(temp_pair);
+             }}
+        }
+
 
 return k_path;
 

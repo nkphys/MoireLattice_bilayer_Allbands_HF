@@ -30,9 +30,9 @@ int main(int argc, char *argv[]) {
     ex_string=ex_string_original.substr (2);
     cout<<"'"<<ex_string<<"'"<<endl;
 
+    bool PerformHartreeFock=true;
 
-
-    if(ex_string=="MoireBands"){
+    if(ex_string=="MoireBands" || true){
         string model_inputfile = argv[1];
 
         if (argc<2) { throw std::invalid_argument("USE:: executable inputfile"); }
@@ -43,8 +43,8 @@ int main(int argc, char *argv[]) {
         Coordinates_ContinuumModel Coordinates_(Parameters_.Grid_moireRL_L1, Parameters_.Grid_moireRL_L2, 2);
         Hamiltonian_ContinuumModel Hamiltonian_(Parameters_, Coordinates_);
 
-        Hamiltonian_.Saving_NonInteractingSpectrum();
-        Hamiltonian_.Calculate_ChernNumbers();
+         Hamiltonian_.Saving_NonInteractingSpectrum();
+         Hamiltonian_.Calculate_ChernNumbers();
 
 
          Coordinates Coordinates_HF_(Parameters_.moire_BZ_L1, Parameters_.moire_BZ_L2, 2);
@@ -54,12 +54,14 @@ int main(int argc, char *argv[]) {
         // cout<<i<<"  "<<Coordinates_HF_.indx_cellwise(i)<<"  "<<Coordinates_HF_.indy_cellwise(i)<<endl;
         // }
 
+        if(PerformHartreeFock){
          mt19937_64 Generator_(Parameters_.RandomSeed);
          Hamiltonian Hamiltonian_HF_(Parameters_, Coordinates_HF_,Hamiltonian_, Generator_);
+       
+       
          //Hamiltonian_HF_.PrintBlochStates();
         // Hamiltonian_HF_.Print_Vint();
         //   Hamiltonian_HF_.Calculate_FormFactors();
-        
          // Hamiltonian_HF_.PrintFormFactors(0, 0, 0);
          // Hamiltonian_HF_.PrintFormFactors(0, 0, 1);
         //  Hamiltonian_HF_.PrintFormFactors(0, 1, 0);
@@ -69,7 +71,7 @@ int main(int argc, char *argv[]) {
          // Hamiltonian_HF_.Print_Interaction_value2(2,3);
 
         Hamiltonian_HF_.RunSelfConsistency();
-        
+        }
 
 
         int n1, n2;
