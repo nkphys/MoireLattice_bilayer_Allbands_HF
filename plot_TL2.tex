@@ -14,6 +14,7 @@
 }%
 \makeatother
 % Load packages
+\usepackage{calc}
 \usepackage{graphicx}
 \usepackage{color}
 \makeatletter
@@ -138,31 +139,37 @@
     \setlength{\fboxsep}{1pt}%
 \begin{picture}(7200.00,3024.00)%
     \gplgaddtomacro\gplbacktext{%
-      \csname LTb\endcsname%
-      \put(462,440){\makebox(0,0)[r]{\strut{}$-4$}}%
-      \put(462,771){\makebox(0,0)[r]{\strut{}$-3$}}%
-      \put(462,1103){\makebox(0,0)[r]{\strut{}$-2$}}%
-      \put(462,1434){\makebox(0,0)[r]{\strut{}$-1$}}%
-      \put(462,1765){\makebox(0,0)[r]{\strut{}$0$}}%
-      \put(462,2096){\makebox(0,0)[r]{\strut{}$1$}}%
-      \put(462,2428){\makebox(0,0)[r]{\strut{}$2$}}%
-      \put(462,2759){\makebox(0,0)[r]{\strut{}$3$}}%
-      \put(594,220){\makebox(0,0){\strut{}$-2$}}%
-      \put(1334,220){\makebox(0,0){\strut{}$0$}}%
-      \put(2073,220){\makebox(0,0){\strut{}$2$}}%
-      \put(2813,220){\makebox(0,0){\strut{}$4$}}%
-      \put(3553,220){\makebox(0,0){\strut{}$6$}}%
-      \put(4293,220){\makebox(0,0){\strut{}$8$}}%
-      \put(5032,220){\makebox(0,0){\strut{}$10$}}%
-      \put(5772,220){\makebox(0,0){\strut{}$12$}}%
+      \csname LTb\endcsname%%
+      \put(726,440){\makebox(0,0)[r]{\strut{}$-2$}}%
+      \put(726,655){\makebox(0,0)[r]{\strut{}$-1.5$}}%
+      \put(726,870){\makebox(0,0)[r]{\strut{}$-1$}}%
+      \put(726,1084){\makebox(0,0)[r]{\strut{}$-0.5$}}%
+      \put(726,1299){\makebox(0,0)[r]{\strut{}$0$}}%
+      \put(726,1514){\makebox(0,0)[r]{\strut{}$0.5$}}%
+      \put(726,1729){\makebox(0,0)[r]{\strut{}$1$}}%
+      \put(726,1944){\makebox(0,0)[r]{\strut{}$1.5$}}%
+      \put(726,2159){\makebox(0,0)[r]{\strut{}$2$}}%
+      \put(726,2373){\makebox(0,0)[r]{\strut{}$2.5$}}%
+      \put(726,2588){\makebox(0,0)[r]{\strut{}$3$}}%
+      \put(726,2803){\makebox(0,0)[r]{\strut{}$3.5$}}%
+      \put(858,220){\makebox(0,0){\strut{}$-1$}}%
+      \put(1407,220){\makebox(0,0){\strut{}$0$}}%
+      \put(1956,220){\makebox(0,0){\strut{}$1$}}%
+      \put(2505,220){\makebox(0,0){\strut{}$2$}}%
+      \put(3054,220){\makebox(0,0){\strut{}$3$}}%
+      \put(3603,220){\makebox(0,0){\strut{}$4$}}%
+      \put(4152,220){\makebox(0,0){\strut{}$5$}}%
+      \put(4701,220){\makebox(0,0){\strut{}$6$}}%
+      \put(5250,220){\makebox(0,0){\strut{}$7$}}%
+      \put(5799,220){\makebox(0,0){\strut{}$8$}}%
     }%
     \gplgaddtomacro\gplfronttext{%
-      \csname LTb\endcsname%
-      \put(6291,440){\makebox(0,0)[l]{\strut{}$-0.1$}}%
-      \put(6291,1019){\makebox(0,0)[l]{\strut{}$-0.05$}}%
-      \put(6291,1599){\makebox(0,0)[l]{\strut{}$0$}}%
-      \put(6291,2179){\makebox(0,0)[l]{\strut{}$0.05$}}%
-      \put(6291,2759){\makebox(0,0)[l]{\strut{}$0.1$}}%
+      \csname LTb\endcsname%%
+      \put(6302,440){\makebox(0,0)[l]{\strut{}$-0.1$}}%
+      \put(6302,1030){\makebox(0,0)[l]{\strut{}$-0.05$}}%
+      \put(6302,1621){\makebox(0,0)[l]{\strut{}$0$}}%
+      \put(6302,2212){\makebox(0,0)[l]{\strut{}$0.05$}}%
+      \put(6302,2803){\makebox(0,0)[l]{\strut{}$0.1$}}%
     }%
     \gplbacktext
     \put(0,0){\includegraphics{plot_TL2-inc}}%

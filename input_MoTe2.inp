@@ -14,18 +14,19 @@ omega_param_in_meV=-8.5
 Grid_moireReciprocalLattice_L1=9
 Grid_moireReciprocalLattice_L2=9
 a_monolayer_in_angstorm=3.472
-Twist_Theta_in_radians=0.043633
+Twist_Theta_in_radians=0.06117
+#3.5=0.06117
 #2.5=0.043633
 #1.5=0.0261799
 #4.5=0.07853975
 
 MStar_top_in_RestMass=0.62
 MStar_bottom_in_RestMass=0.62
-moire_BZ_L1=3
-moire_BZ_L2=3
+moire_BZ_L1=6
+moire_BZ_L2=6
 
 
-MagField_ZeemanSplitting=0.001
+MagField_ZeemanSplitting=0.01
 
 MagneticUnitCell_NMat_row1=1 0
 MagneticUnitCell_NMat_row2=0 1
@@ -35,11 +36,11 @@ eps_DE=10.0
 distance_to_gate_in_angstorm=200
 
 
-holedensity_per_moire_unit_cell=1.0
-Temperature_in_Kelvin=0.0000001
+holedensity_per_moire_unit_cell=3.0
+Temperature_in_Kelvin=0.00001
 HF_convergence_error=0.0000001
 SimpleMixing_alpha=0.5
 #alpha*new  + (1-alpha)*old
 Max_HFIterations=10000
-RandomSeed=4
+RandomSeed=5
 

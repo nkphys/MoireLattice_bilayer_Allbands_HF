@@ -54,9 +54,11 @@ scale = 0.7
 #set yr [-3:3]
 unset cbr
 set cbr [-0.1:0.1]
-set palette define (0 "red", 1.0 "blue")
+set palette define (0 "red", 0.3 "red", 1.0 "blue")
 #p "RealSpace_OParams.txt" u ($3):($4):($8*10000):($7*10000):(sqrt($8*$8 + $7*$7 +$6*$6)) w vec arrowstyle 3 notitle
-p "layer_0_RealSpace_OParams.txt" u ($3):($4):($6*1200):($8*1200):(sqrt($8*$8 + $7*$7 + $6*$6)*1200) w vec arrowstyle 3 notitle
+#p "~/Desktop/Data_ACF/MoTe2Bilayer_HF_Runs/Filling1.0/TwistAngle2.5/N_MoireCells6x6/MagneticUC_N00_1_N01_0_N10_0_N11_1/N_HF_BANDS3/DistanceToGate200/epsilon4.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):($6*1200):($8*1200):(sqrt($8*$8 + $7*$7 + $6*$6)*1200) w vec arrowstyle 3 notitle
+#layer_0_RealSpace_OParams_moiresites.txt
+p "layer_0_RealSpace_OParams.txt" u ($3):($4):($6*700):($8*700):(($6)*700) w vec arrowstyle 3 notitle
 #p "layer_0_RealSpace_OParams_moiresites.txt" u ($5 - 0.5*$8*0.2):($6 - 0.5*$10*0.2):($8*0.2):($10*0.2):(sqrt($8*$8 + $9*$9 +$10*$10)) w vec arrowstyle 3 notitle
 #p "RealSpace_OParams_moiresites.txt" u ($5 - (0.0*$10) ):($6 -  ($9*0.0) ):($9):($10):($8) w vec arrowstyle 3 notitle
 #p "RealSpace_OParams.txt" u ($3):($4):($6*8000*1):($7*8000*1):($5) w vec arrowstyle 3 notitle 
