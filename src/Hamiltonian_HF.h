@@ -18,6 +18,13 @@ extern "C" void   zheev_(char *,char *,int *,std::complex<double> *, int *, doub
 //zheev_(&jobz,&uplo,&n,&(Ham_(0,0)),&lda,&(eigs_[0]),&(work[0]),&lwork,&(rwork[0]),&info);
 
 
+extern "C" void dgesdd_ (char *, int *, int *, double *, int *, double *, double *, int *, double *, int*,
+                         double *, int *, int *, int *);
+
+
+extern "C" void zgesdd_ (char *, int *, int *, std::complex<double> *, int *, double *, std::complex<double> *, int *, std::complex<double> *, int*,
+                         std::complex<double> *, int *, double * , int *, int *);
+
 
 class Hamiltonian {
 public:
@@ -39,6 +46,7 @@ public:
     void PrintBlochStates();
     complex<double> Interaction_value(int spin, int spin_p, int band1, int band2, int band3, int band4, int k1_ind, int k2_ind, int q_ind);
     void Create_Amat_and_Bmat();
+    void Create_Hbar_and_Fbar();
     void Save_InteractionVal();
     double V_int(double q_val);
     void Print_Interaction_value();
@@ -58,7 +66,10 @@ public:
     void AppendEigenspectrum(int kset_ind);
     void Calculate_OParams_and_diff(double &diff_);    
     double FermiFunction(double Eval);
-    void Update_OParams();
+    void Update_OrderParameters_AndersonMixing(int iter);
+    void Perform_SVD_complex(Matrix<complex<double>> & A_, Matrix<complex<double>> & VT_, Matrix<complex<double>> & U_, vector<double> & Sigma_);
+    void Perform_SVD(Matrix<double> & A_, Matrix<double> & VT_, Matrix<double> & U_, vector<double> & Sigma_);
+    void Update_OParams_SimpleMixing();
     double chemicalpotential(double muin,double Particles);
     void Get_max_and_min_eigvals();
     double Myrandom();
@@ -67,6 +78,7 @@ public:
     void Update_Hartree_Coefficients();
     void Update_Fock_Coefficients();
     void Calculate_Total_Spin();
+    void Calculate_Total_Energy();
     double DispersionTriangularLattice(int k_ind);
     double Lorentzian(double eta, double x);
     void Print_SPDOS(string filename);
@@ -131,6 +143,8 @@ public:
     Mat_9_Complex_doub Xmat;
     Mat_7_Complex_doub Omat;
 
+    Mat_4_Complex_doub Hbar, Fbar;
+
     Mat_9_Complex_doub Interaction_val;
     //(int spin, int spin_p, int band1, int band2, int band3, int band4, int k1_ind, int k2_ind, int q_ind);
 
@@ -141,6 +155,8 @@ public:
 
 
     Mat_2_Complex_doub N_layer_tau;
+
+    complex<double> Total_QuantEnergy, Total_ClassEnergy;
 //------------------
     
     double kx_, ky_;
@@ -169,6 +185,13 @@ public:
     double Total_n_up, Total_n_dn; 
     double Total_Sz, Total_Sx, Total_Sy;
 
+
+    //Declarations for Anderson Mixing
+    Mat_1_doub x_km1_, x_k_, Del_x_km1;
+    Mat_1_doub f_k_, f_km1_, Del_f_km1;
+    Mat_1_doub xbar_k_, fbar_k_, gamma_k_, x_kp1_;
+    Matrix<double> X_mat, F_mat;
+
 };
 
 
@@ -196,7 +219,7 @@ int l1, l2;
 int col_val_up, row_val_up;
 int col_val_dn, row_val_dn;
 string  filename2_new;
-for(int layer=0;layer<2;layer++){
+for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
 filename2_new = "layer_"+to_string(layer)+"_"+filename2;
 ofstream fileout2(filename2_new.c_str());
 fileout2<<"#cell1  cell2   m1  m2  rx  ry   density   sz  sx  sy"<<endl;
@@ -348,7 +371,7 @@ int l1, l2;
 int col_val_up, row_val_up;
 int col_val_dn, row_val_dn;
 string filename_new;
-for(int layer=0;layer<2;layer++){
+for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
 filename_new = "layer_"+to_string(layer)+"_"+filename;
 ofstream fileout(filename_new.c_str());
 fileout<<"# m1  m2  rx  ry   density   sz  sx  sy"<<endl;
@@ -496,12 +519,12 @@ for(int spin=0;spin<2;spin++){
 Xmat[kSL_ind][k1_ind][k2_ind][spin].resize(2);
 Omat[kSL_ind][k1_ind][k2_ind][spin].resize(2);
 for(int spin_p=0;spin_p<2;spin_p++){
-Xmat[kSL_ind][k1_ind][k2_ind][spin][spin_p].resize(2);
-Omat[kSL_ind][k1_ind][k2_ind][spin][spin_p].resize(2);
-for(int layer1=0;layer1<2;layer1++){
-Xmat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1].resize(2);
-Omat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1].resize(2);
-for(int layer2=0;layer2<2;layer2++){
+Xmat[kSL_ind][k1_ind][k2_ind][spin][spin_p].resize(Parameters_.max_layer_ind);
+Omat[kSL_ind][k1_ind][k2_ind][spin][spin_p].resize(Parameters_.max_layer_ind);
+for(int layer1=0;layer1<Parameters_.max_layer_ind;layer1++){
+Xmat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1].resize(Parameters_.max_layer_ind);
+Omat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1].resize(Parameters_.max_layer_ind);
+for(int layer2=0;layer2<Parameters_.max_layer_ind;layer2++){
 Xmat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1][layer2].resize(Nbands);
 for(int band1=0;band1<Nbands;band1++){
 Xmat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1][layer2][band1].resize(Nbands);
@@ -521,8 +544,8 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
 k2_ind_val = k_sublattices[kSL_ind][k2_ind];
 for(int spin=0;spin<2;spin++){
 for(int spin_p=0;spin_p<2;spin_p++){
-for(int layer1=0;layer1<2;layer1++){
-for(int layer2=0;layer2<2;layer2++){
+for(int layer1=0;layer1<Parameters_.max_layer_ind;layer1++){
+for(int layer2=0;layer2<Parameters_.max_layer_ind;layer2++){
 for(int band1=0;band1<Nbands;band1++){
 for(int band2=0;band2<Nbands;band2++){
 Xmat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1][layer2][band1][band2]=0.0;
@@ -548,8 +571,8 @@ for(int k1_ind=0;k1_ind<k_sublattices[kSL_ind].size();k1_ind++){
 for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
 for(int spin=0;spin<2;spin++){
 for(int spin_p=0;spin_p<2;spin_p++){
-for(int layer1=0;layer1<2;layer1++){
-for(int layer2=0;layer2<2;layer2++){
+for(int layer1=0;layer1<Parameters_.max_layer_ind;layer1++){
+for(int layer2=0;layer2<Parameters_.max_layer_ind;layer2++){
 Omat[kSL_ind][k1_ind][k2_ind][spin][spin_p][layer1][layer2]=0.0;
 for(int band1=0;band1<Nbands;band1++){
 for(int band2=0;band2<Nbands;band2++){
@@ -575,7 +598,7 @@ int h1_1, h1_2, h2_1, h2_2;
 int l1, l2;
 
 string filename_new, filename2_new;
-for(int layer=0;layer<2;layer++){
+for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
 filename_new = "layer_"+to_string(layer)+"_"+filename;
 filename2_new = "layer_"+to_string(layer)+"_"+filename2;
 ofstream fileout(filename_new.c_str());
@@ -828,7 +851,83 @@ void Hamiltonian::Get_max_and_min_eigvals(){
 
 }
 
+
+
+void Hamiltonian::Calculate_Total_Energy(){
+
+Total_QuantEnergy=0.0;
+Total_ClassEnergy=0.0;
+
+
+for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+for(int n=0;n<EigVectors[kSL_ind].n_row();n++){
+  Total_QuantEnergy += EigValues[kSL_ind][n]*FermiFunction(EigValues[kSL_ind][n]);
+}
+}
+
+
+int row_ind, col_ind;
+//Classical Energy Terms
+
+//Hartree Term
+for(int kset_ind=0;kset_ind<k_sublattices.size();kset_ind++){
+for(int spin_p=0;spin_p<2;spin_p++){
+    for(int band2=0;band2<Nbands;band2++){
+    for(int band3=0;band3<Nbands;band3++){
+    for(int k2_ind=0;k2_ind<k_sublattices[kset_ind].size();k2_ind++){
+     for(int k3_ind=0;k3_ind<k_sublattices[kset_ind].size();k3_ind++){
+
+        row_ind = k3_ind +
+                  k_sublattices[kset_ind].size()*band2 +
+                  k_sublattices[kset_ind].size()*Nbands*spin_p;
+        col_ind = k2_ind +
+                  k_sublattices[kset_ind].size()*band3 +
+                  k_sublattices[kset_ind].size()*Nbands*spin_p;
+
+       Total_ClassEnergy += (-0.5)*HartreeCoefficients[kset_ind][k2_ind][k3_ind][band2][band3][spin_p]*
+                                OParams_new[kset_ind](row_ind,col_ind);
+    }
+    }
+    }
+    }
+}}
+
+
+//Fock Term
+for(int kset_ind=0;kset_ind<k_sublattices.size();kset_ind++){
+for(int spin=0;spin<2;spin++){
+for(int spin_p=0;spin_p<2;spin_p++){
+
+    for(int band2=0;band2<Nbands;band2++){
+    for(int band4=0;band4<Nbands;band4++){
+
+
+    for(int k2_ind=0;k2_ind<k_sublattices[kset_ind].size();k2_ind++){
+     for(int k3_ind=0;k3_ind<k_sublattices[kset_ind].size();k3_ind++){
+
+        row_ind = k3_ind +
+                  k_sublattices[kset_ind].size()*band2 +
+                  k_sublattices[kset_ind].size()*Nbands*spin_p;
+        col_ind = k2_ind +
+                  k_sublattices[kset_ind].size()*band4 +
+                  k_sublattices[kset_ind].size()*Nbands*spin;
+
+      Total_ClassEnergy += (0.5)*FockCoefficients[kset_ind][k2_ind][k3_ind][band2][band4][spin][spin_p]*
+                            OParams_new[kset_ind](row_ind,col_ind);
+    }
+    }
+
+    }
+    }
+
+}
+}}
+
+
+}
+
 double Hamiltonian::chemicalpotential(double muin,double Particles){
+
 
 
     double mu_out;
@@ -918,6 +1017,7 @@ double Hamiltonian::chemicalpotential(double muin,double Particles){
             }
 
             mu_out = mu_temp;
+            //cout<<"Particles : "<<Particles<<" , n1 = "<<n1<<endl;
         }
 
     }
@@ -925,6 +1025,8 @@ double Hamiltonian::chemicalpotential(double muin,double Particles){
     else{
         mu_out = Parameters_.MuValueFixed;
     }
+
+
 
     return mu_out;
 } // ----------
@@ -1263,8 +1365,10 @@ void Hamiltonian::Initialize(){
     HF_max_iterations=Parameters_.Max_HFIterations;
     HF_convergence_error=Parameters_.HF_convergence_error;
     alpha_mixing=Parameters_.SimpleMixing_alpha;
-    Convergence_technique="SimpleMixing";
+    Convergence_technique=Parameters_.Convergence_technique;
 
+    assert(Convergence_technique=="SimpleMixing" ||
+           Convergence_technique=="AndersonMixing");
 
 
     KB_=0.08617332; //in meV/K
@@ -1446,6 +1550,21 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
     }
 
 
+    Hbar.resize(ns_);
+    Fbar.resize(ns_);
+    for(int k_=0;k_<ns_;k_++){
+    Hbar[k_].resize(Nbands);
+    Fbar[k_].resize(Nbands);
+    for(int n1=0;n1<Nbands;n1++){
+    Hbar[k_][n1].resize(Nbands);
+    Fbar[k_][n1].resize(Nbands);
+    for(int n2=0;n2<Nbands;n2++){
+    Hbar[k_][n1][n2].resize(2);//For Spin
+    Fbar[k_][n1][n2].resize(2);//For Spin
+    }
+    }
+    }
+
 
     
     //(int spin, int spin_p, int band1, int band2, int band3, int band4, int k1_ind, int k2_ind, int q_ind)
@@ -1498,11 +1617,16 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
     Create_Amat_and_Bmat();
     cout<<"Completed: Creating Amat and Bmat"<<endl;
 
+    cout<<"Started:  Creating Hbar and Fbar"<<endl;
+    Create_Hbar_and_Fbar();
+    cout<<"Completed: Creating Hbar and Fbar"<<endl;
+
+
     //-----------
   
 
-    N_layer_tau.resize(2);
-    for(int i=0;i<2;i++){
+    N_layer_tau.resize(Parameters_.max_layer_ind);
+    for(int i=0;i<Parameters_.max_layer_ind;i++){
         N_layer_tau[i].resize(2);
     }
 
@@ -1511,6 +1635,45 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
 
 } // ----------
 
+
+void Hamiltonian::Create_Hbar_and_Fbar(){
+
+    int k_ind1, k_ind2, q_ind1, q_ind2;
+    int kpq_temp1, kpq_temp2;
+    int kpq_new;
+    int kpq_new1, kpq_new2, G1_ind_temp, G2_ind_temp;
+
+    for(int k_=0;k_<ns_;k_++){
+        k_ind1=Coordinates_.indx_cellwise(k_);
+        k_ind2=Coordinates_.indy_cellwise(k_);
+    for(int n1=0;n1<Nbands;n1++){
+    for(int n2=0;n2<Nbands;n2++){
+    for(int spin=0;spin<2;spin++){
+    Hbar[k_][n1][n2][spin]=0.0;
+    Fbar[k_][n1][n2][spin]=0.0;
+    for(int q_=0;q_<ns_;q_++){
+        q_ind1=Coordinates_.indx_cellwise(q_);
+        q_ind2=Coordinates_.indy_cellwise(q_);
+
+        kpq_temp1 = k_ind1 + q_ind1;
+        kpq_temp2 = k_ind2 + q_ind2;
+
+        Folding_to_BrillouinZone(kpq_temp1, kpq_temp2, kpq_new1, kpq_new2, G1_ind_temp, G2_ind_temp);
+        kpq_new = kpq_new1 + kpq_new2*l1_;
+
+        for(int n3=0;n3<Nbands;n3++){
+        Hbar[k_][n1][n2][spin] += (-1.0/(2.0*Area))*Interaction_val[spin][spin][n1][n3][n2][n3][kpq_new][k_][q_];
+
+        for(int spin_p=0;spin_p<2;spin_p++){
+        Fbar[k_][n1][n2][spin] += (1.0/(2.0*Area))*Interaction_val[spin][spin_p][n1][n3][n3][n2][k_][q_][0];
+        }
+
+        }
+    }
+
+    }}}}
+
+}
 
 void Hamiltonian::Create_Amat_and_Bmat(){
 
@@ -1930,7 +2093,25 @@ void Hamiltonian::Create_Hamiltonian(int kset_ind){
         }
 
 
+        //Hartree+Fock Offsets
+        for(int spin=0;spin<2;spin++){
+            for(int band1=0;band1<Nbands;band1++){
+            for(int band2=0;band2<Nbands;band2++){
+                for(int k_ind=0;k_ind<k_sublattices[kset_ind].size();k_ind++){
+                    row_ind = k_ind +
+                              k_sublattices[kset_ind].size()*band1+
+                              k_sublattices[kset_ind].size()*Nbands*spin;
+                    col_ind = k_ind +
+                              k_sublattices[kset_ind].size()*band2+
+                              k_sublattices[kset_ind].size()*Nbands*spin;
 
+                    Ham_(row_ind, col_ind) += (1.0*Hbar[k_sublattices[kset_ind][k_ind]][band1][band2][spin]
+                                             +
+                                           1.0*Fbar[k_sublattices[kset_ind][k_ind]][band1][band2][spin]);
+                }
+            }
+        }
+        }
 
         //Hartree Term
             for(int spin_p=0;spin_p<2;spin_p++){
@@ -2061,7 +2242,7 @@ int TOP_=1;
 int q_ind,comp;
 
 int col_val, row_val;
-for(int layer=0;layer<2;layer++){
+for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
 for(int spin=0;spin<2;spin++){
 N_layer_tau[layer][spin]=0.0;
 
@@ -2174,10 +2355,8 @@ diff_ = sqrt(distance_sqr);
 }
 
 
+void Hamiltonian::Update_OParams_SimpleMixing(){
 
-void Hamiltonian::Update_OParams(){
-
-if(Convergence_technique=="SimpleMixing"){
 
 for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
 for(int row_val=0;row_val<OParams[kSL_ind].n_row();row_val++){
@@ -2187,25 +2366,478 @@ OParams[kSL_ind](row_val,col_val) = alpha_mixing*OParams_new[kSL_ind](row_val,co
 
 }}}
 
+
+
+
 }
+
+void Hamiltonian::Update_OrderParameters_AndersonMixing(int iter){
+
+    bool with_SVD=false;
+    int Offset_;
+    int m_;
+    int row_, col_;
+    int old_ind;
+    int OP_size, OP_Real_size, OP_Imag_size;
+    Mat_1_int NewInd_to_kSL_ind;
+    Mat_1_int NewInd_to_row_ind;
+    Mat_1_int NewInd_to_col_ind;
+    NewInd_to_kSL_ind.clear();
+    NewInd_to_row_ind.clear();
+    NewInd_to_col_ind.clear();
+
+    OP_size=0;
+    OP_Real_size=0;
+    OP_Imag_size=0;
+    for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+    assert(OParams[kSL_ind].n_row()==OParams[kSL_ind].n_col());//square matrix
+    OP_size += 2*int(((OParams[kSL_ind].n_row()*(OParams[kSL_ind].n_row()-1))+0.5)/2.0)
+               + OParams[kSL_ind].n_row();
+    }
+    //Vectorization order
+    //col=>row
+    //all real values for col>=row first in order m_11, m_12,..,m_1n, m21, m22,..m2n,m31,....
+    //then imag values vol>row in order m12, m13,....,m1n, m23,...
+    for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+        for(int row_i=0;row_i<OParams[kSL_ind].n_row();row_i++){
+            for(int col_i=0;col_i<OParams[kSL_ind].n_col();col_i++){
+                if(col_i>=row_i){//for real part
+                  NewInd_to_kSL_ind.push_back(kSL_ind);
+                  NewInd_to_row_ind.push_back(row_i);
+                  NewInd_to_col_ind.push_back(col_i);
+                  OP_Real_size++;
+                }
+            }
+        }
+    }
+    for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+        for(int row_i=0;row_i<OParams[kSL_ind].n_row();row_i++){
+            for(int col_i=0;col_i<OParams[kSL_ind].n_col();col_i++){
+                if(col_i>row_i){//for imag part
+                  NewInd_to_kSL_ind.push_back(kSL_ind);
+                  NewInd_to_row_ind.push_back(row_i);
+                  NewInd_to_col_ind.push_back(col_i);
+                  OP_Imag_size++;
+                }
+            }
+        }
+    }
+
+    assert(OP_size==NewInd_to_kSL_ind.size());
+
+
+
+    if(iter==0){
+        //        cout<<"Anderson mixing for iter "<<iter<<endl;
+
+        x_k_.clear();x_k_.resize(OP_size);
+        for(int i=0;i<OP_size;i++){
+            if(i<OP_Real_size){
+                x_k_[i] = OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).real();
+            }
+            else{
+                x_k_[i] = OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).imag();
+            }
+        }
+
+        f_k_.clear();f_k_.resize(OP_size);
+        for(int i=0;i<OP_size;i++){
+            if(i<OP_Real_size){
+                f_k_[i] = OParams_new[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).real()
+                        - OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).real();
+            }
+            else{
+                f_k_[i] = OParams_new[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).imag()
+                        - OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).imag();
+            }
+        }
+        //assert(OParams.value.size() == MFParams_.OParams_.value.size());
+
+        //f_k = OParams.value;
+        //x_k = MFParams_.OParams_.value;
+
+        for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+            for(int row_i=0;row_i<OParams[kSL_ind].n_row();row_i++){
+                for(int col_i=0;col_i<OParams[kSL_ind].n_col();col_i++){
+
+            OParams[kSL_ind](row_i, col_i) = (1.0 - alpha_mixing)*OParams[kSL_ind](row_i, col_i) +
+                                              alpha_mixing*OParams_new[kSL_ind](row_i, col_i);
+        }}}
+
+        x_km1_=x_k_;
+        X_mat.resize(0,0);
+
+        f_km1_=f_k_;
+        F_mat.resize(0,0);
+        //f_km1=
+
+    }
+    else{
+        //      cout<<"Anderson mixing for iter "<<iter<<endl;
+        x_k_.clear();x_k_.resize(OP_size);
+
+        for(int i=0;i<OP_size;i++){
+            if(i<OP_Real_size){
+                x_k_[i] = OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).real();
+            }
+            else{
+                x_k_[i] = OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).imag();
+            }
+        }
+
+
+        f_k_.clear();f_k_.resize(OP_size);
+        for(int i=0;i<OP_size;i++){
+            if(i<OP_Real_size){
+                f_k_[i] = OParams_new[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).real()
+                        - OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).real();
+            }
+            else{
+                f_k_[i] = OParams_new[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).imag()
+                        - OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).imag();
+            }
+        }
+
+        Del_x_km1.clear();Del_x_km1.resize(OP_size);
+        Del_f_km1.clear();Del_f_km1.resize(OP_size);
+        for(int i=0;i<OP_size;i++){
+            Del_x_km1[i] = x_k_[i] - x_km1_[i];
+            Del_f_km1[i] = f_k_[i] - f_km1_[i];
+        }
+
+
+        m_=min(Parameters_.AM_m,iter);
+        gamma_k_.clear();
+        gamma_k_.resize(m_);
+
+        //updating X_mat_k
+        Matrix <double> Xmat_temp;
+        Xmat_temp.resize(X_mat.n_row(),X_mat.n_col());
+        Xmat_temp=X_mat;
+        X_mat.resize(OP_size,m_);
+
+        if(iter<=Parameters_.AM_m){
+            for(col_=0;col_<Xmat_temp.n_col();col_++){
+                for(row_=0;row_<Xmat_temp.n_row();row_++){
+                    X_mat(row_,col_) = Xmat_temp(row_,col_);
+                }
+            }
+
+            for(col_=m_-1;col_<m_;col_++){
+                for(row_=0;row_<OP_size;row_++){
+                    X_mat(row_,col_) = Del_x_km1[row_];
+                }
+            }
+        }
+        else{
+            for(col_=1;col_<Xmat_temp.n_col();col_++){
+                for(row_=0;row_<Xmat_temp.n_row();row_++){
+                    X_mat(row_,col_-1) = Xmat_temp(row_,col_);
+                }
+            }
+            for(row_=0;row_<OP_size;row_++){
+                X_mat(row_,m_-1) = Del_x_km1[row_];
+            }
+        }
+
+
+
+        //updating F_mat_k
+        Matrix <double> Fmat_temp;
+        Fmat_temp.resize(F_mat.n_row(),F_mat.n_col());
+        Fmat_temp=F_mat;
+        F_mat.resize(OP_size,m_);
+
+        if(iter<=Parameters_.AM_m){
+            for(col_=0;col_<Fmat_temp.n_col();col_++){
+                for(row_=0;row_<Fmat_temp.n_row();row_++){
+                    F_mat(row_,col_) = Fmat_temp(row_,col_);
+                }
+            }
+
+            for(col_=m_-1;col_<m_;col_++){
+                for(row_=0;row_<OP_size;row_++){
+                    F_mat(row_,col_) = Del_f_km1[row_];
+                }
+            }
+        }
+        else{
+            for(col_=1;col_<Fmat_temp.n_col();col_++){
+                for(row_=0;row_<Fmat_temp.n_row();row_++){
+                    F_mat(row_,col_-1) = Fmat_temp(row_,col_);
+                }
+            }
+            for(row_=0;row_<OP_size;row_++){
+                F_mat(row_,m_-1) = Del_f_km1[row_];
+            }
+        }
+
+        //cout<<"here 1"<<endl;
+
+        //Update gamma_k using Total least sqaure minimaztion (using SVD of F_mat)
+        if(with_SVD==false){
+            for(int i=0;i<m_;i++){
+                gamma_k_[i] = 1.0/(1.0*m_);
+            }
+        }
+        else{
+            int r_;
+            r_=min(OP_size,m_);
+            Matrix<double> A_;  //nxm; n=OP_size
+            Matrix<double> VT_; //mxm
+            Matrix<double> U_;  //nxn
+            vector<double> Sigma_; //atmost non-zero min(n,m) values
+            A_.resize(F_mat.n_row(), F_mat.n_col());
+            A_=F_mat;
+
+            //cout<<"here 2"<<endl;
+            Perform_SVD(A_,VT_,U_,Sigma_);
+            //cout<<"here 2.5"<<endl;
+
+            Matrix<double> UT_f;
+            Matrix<double> Sinv_UT_f;
+
+            UT_f.resize(r_,1);
+            for(int i=0;i<r_;i++){
+                for(int j=0;j<OP_size;j++){
+                    UT_f(i,0) += U_(j,i)*f_k_[j];
+                }
+            }
+
+            Sinv_UT_f.resize(r_,1);//S-inv in Pseudoinverse of Sigma_
+            for(int i=0;i<r_;i++){
+                if(abs(Sigma_[i])>=0.001){
+                    Sinv_UT_f(i,0) = (1.0/Sigma_[i])*UT_f(i,0);
+                }
+                else{
+                    Sinv_UT_f(i,0)=0.0;
+                }
+            }
+
+            double sum_gamma=0.0;
+            for(int i=0;i<m_;i++){
+                gamma_k_[i]=0.0;
+                for(int j=0;j<r_;j++){
+                    gamma_k_[i] += VT_(j,i)*Sinv_UT_f(j,0);
+                }
+                sum_gamma += abs(gamma_k_[i]);
+
+            }
+
+            if(sum_gamma>1){
+                for(int i=0;i<m_;i++){
+                    gamma_k_[i] = gamma_k_[i]*(1.0/sum_gamma);
+                }
+            }
+
+        }
+
+
+        //cout<<"here 3"<<endl;
+
+
+        //Mat_1_doub Temp_F_gamma_k, Temp_X_gamma_k;
+        xbar_k_.clear();fbar_k_.clear();
+        xbar_k_.resize(OP_size);
+        fbar_k_.resize(OP_size);
+        double temp_f, temp_x;
+        for(int i=0;i<OP_size;i++){
+            temp_f=0.0;
+            temp_x=0.0;
+            for(int j=0;j<m_;j++){
+                temp_f +=F_mat(i,j)*gamma_k_[j];
+                temp_x +=X_mat(i,j)*gamma_k_[j];
+            }
+            xbar_k_[i] = x_k_[i] - 1.0*temp_x;
+            fbar_k_[i] = f_k_[i] - 1.0*temp_f;
+        }
+
+
+        x_kp1_.clear();
+        x_kp1_.resize(OP_size);
+        for(int i=0;i<OP_size;i++){
+            x_kp1_[i] = (1.0 - 0.0*alpha_mixing)*xbar_k_[i]  +
+                    alpha_mixing*fbar_k_[i];
+        }
+
+
+        for(int i=0;i<OP_size;i++){
+            if(i<OP_Real_size){
+                OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).real(x_kp1_[i]);
+            }
+            else{
+                OParams[NewInd_to_kSL_ind[i]](NewInd_to_row_ind[i], NewInd_to_col_ind[i]).imag(x_kp1_[i]);
+            }
+        }
+
+
+        for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+            for(int row_i=0;row_i<OParams[kSL_ind].n_row();row_i++){
+                for(int col_i=0;col_i<OParams[kSL_ind].n_col();col_i++){
+             if(col_i>row_i){
+            OParams[kSL_ind](col_i, row_i) = conj(OParams[kSL_ind](row_i, col_i));
+        }
+                }}}
+
+
+
+        //---saving arrays for next iteration-----
+        x_km1_=x_k_;
+        f_km1_=f_k_;
+
+    }
 
 
 }
+
+
+void Hamiltonian::Perform_SVD(Matrix<double> & A_, Matrix<double> & VT_, Matrix<double> & U_, vector<double> & Sigma_){
+
+
+    char jobz='A'; //A,S,O,N
+
+    int m=A_.n_row();
+    int n=A_.n_col();
+    int lda=A_.n_row();
+    int ldu=A_.n_row();
+    int ldvt=n;
+
+    Sigma_.clear();
+    Sigma_.resize(min(m,n));
+
+    U_.resize(ldu,m);
+
+    VT_.resize(ldvt,n);
+
+
+    vector<double> work(3);
+    int info;
+    int lwork= -1;
+    vector<int> iwork(8*min(m,n));
+
+    // query:
+    dgesdd_(&jobz, &m, &n, &(A_(0,0)),&lda, &(Sigma_[0]),&(U_(0,0)), &ldu, &(VT_(0,0)), &ldvt,
+            &(work[0]), &lwork, &(iwork[0]), &info);
+    //lwork = int(real(work[0]))+1;
+    lwork = int((work[0]));
+    work.resize(lwork);
+    // real work:
+    dgesdd_(&jobz, &m, &n, &(A_(0,0)),&lda, &(Sigma_[0]),&(U_(0,0)), &ldu, &(VT_(0,0)), &ldvt,
+            &(work[0]), &lwork, &(iwork[0]), &info);
+    if (info!=0) {
+        if(info>0){
+            std::cerr<<"info="<<info<<"\n";
+            perror("diag: zheev: failed with info>0.\n");}
+        if(info<0){
+            std::cerr<<"info="<<info<<"\n";
+            perror("diag: zheev: failed with info<0.\n");
+        }
+    }
+
+    // Ham_.print();
+
+
+
+}
+
+
+void Hamiltonian::Perform_SVD_complex(Matrix<complex<double>> & A_, Matrix<complex<double>> & VT_, Matrix<complex<double>> & U_, vector<double> & Sigma_){
+
+
+    char jobz='A'; //A,S,O,N
+
+    int m=A_.n_row();
+    int n=A_.n_col();
+    int lda=A_.n_row();
+    int ldu=A_.n_row();
+    int ldvt=n;
+
+    Sigma_.clear();
+    Sigma_.resize(min(m,n));
+
+    U_.resize(ldu,m);
+
+    VT_.resize(ldvt,n);
+
+
+    vector<complex<double>> work(3);
+    int info;
+    int lwork= -1;
+    vector<int> iwork(8*min(m,n));
+    int lrwork = max( (5*min(m,n)*min(m,n)) + 5*min(m,n), (2*max(m,n)*min(m,n)) + (2*min(m,n)*min(m,n)) + min(m,n) );
+    vector<double> rwork(lrwork);
+
+    // query:
+    zgesdd_(&jobz, &m, &n, &(A_(0,0)),&lda, &(Sigma_[0]),&(U_(0,0)), &ldu, &(VT_(0,0)), &ldvt,
+            &(work[0]), &lwork, &(rwork[0]), &(iwork[0]), &info);
+    //lwork = int(real(work[0]))+1;
+    lwork = int((work[0]).real());
+    work.resize(lwork);
+    // real work:
+    zgesdd_(&jobz, &m, &n, &(A_(0,0)),&lda, &(Sigma_[0]),&(U_(0,0)), &ldu, &(VT_(0,0)), &ldvt,
+            &(work[0]), &lwork, &(rwork[0]), &(iwork[0]), &info);
+    if (info!=0) {
+        if(info>0){
+            std::cerr<<"info="<<info<<"\n";
+            perror("diag: zheev: failed with info>0.\n");}
+        if(info<0){
+            std::cerr<<"info="<<info<<"\n";
+            perror("diag: zheev: failed with info<0.\n");
+        }
+    }
+
+    // Ham_.print();
+
+
+
+}
+
 
 void Hamiltonian::Initialize_OParams(){
 
+    if(Parameters_.Read_OPs_bool){
+        string line;
+        int kSL_ind_temp, row_val_temp, col_val_temp;
+        double OP_real, OP_imag;
+        ifstream fileOPin(Parameters_.OP_input_file.c_str());
+        //fileOPin>>line;
+        getline(fileOPin, line);
+        //cout<<"'"<<Parameters_.OP_input_file<<"'"<<endl;
+        //cout<<line<<endl;
 
+        for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+            OParams[kSL_ind].resize(k_sublattices[kSL_ind].size()*2*Nbands,k_sublattices[kSL_ind].size()*2*Nbands);
+        }
+        for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+            for(int row_val=0;row_val<OParams[kSL_ind].n_row();row_val++){
+            for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
+            fileOPin>>kSL_ind_temp>>row_val_temp>>col_val_temp>>OP_real>>OP_imag;
+            cout<<kSL_ind_temp<<"  "<<row_val_temp<<"  "<<col_val_temp<<endl;
+            cout<<kSL_ind<<"  "<<row_val<<"  "<<col_val<<endl;
+            assert(kSL_ind_temp==kSL_ind);
+            assert(row_val_temp==row_val);
+            assert(col_val_temp==col_val);
+            OParams[kSL_ind](row_val,col_val) = complex<double>(OP_real, OP_imag);
+            }}
+        }
+    }
+    else{
 for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
     OParams[kSL_ind].resize(k_sublattices[kSL_ind].size()*2*Nbands,k_sublattices[kSL_ind].size()*2*Nbands);
 for(int row_val=0;row_val<OParams[kSL_ind].n_row();row_val++){
 for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     if(row_val!=col_val){
+        if(row_val>col_val){
 OParams[kSL_ind](row_val,col_val) = complex<double>(Myrandom(),Myrandom());
+OParams[kSL_ind](col_val,row_val) = conj(OParams[kSL_ind](row_val,col_val));
+        }
     }
     else{
 OParams[kSL_ind](row_val,col_val) = complex<double>(Myrandom(),0.0);
     }
 }}}
+
+    }
 
 
 
@@ -2266,15 +2898,18 @@ void Hamiltonian::RunSelfConsistency(){
 
     string file_conv="HF_out.txt";
     ofstream Convergence_out(file_conv.c_str());
-    Convergence_out<<"#iter   OP_diff   mu    Total_n_up    Total_n_dn"<<endl;
+    Convergence_out<<"#iter   OP_diff   mu  QuantEnergy.real  .imag  ClassEnergy.real  .imag  Total_n_up    Total_n_dn   Energy_diff"<<endl;
 
 
     int N_Particles;
-    N_Particles = nu_holes_target*ns_;
+    N_Particles = int((nu_holes_target*ns_)+0.5);
     double diff_=1000;
     int iter=0;
     double mu_old;
 
+    double Energy_old =0.0;
+    double Energy_new;
+    double Energy_diff=10000.0;
     //cout<<"here -1"<<endl;
     Initialize_OParams();
     //cout<<"here 0"<<endl;
@@ -2283,7 +2918,7 @@ void Hamiltonian::RunSelfConsistency(){
     Update_Fock_Coefficients();
     //cout<<"here 2"<<endl;
 
-    while(iter<HF_max_iterations && diff_>HF_convergence_error){ 
+    while( !(iter>HF_max_iterations || (diff_<HF_convergence_error && Energy_diff<HF_convergence_error)) ){
 
     for(int kset_ind=0;kset_ind<k_sublattices.size();kset_ind++){
         
@@ -2309,13 +2944,25 @@ void Hamiltonian::RunSelfConsistency(){
     
     
     mu_=chemicalpotential(mu_old,N_Particles);
+
     Calculate_OParams_and_diff(diff_);
-    Update_OParams();
+    Calculate_Total_Energy();
+    Energy_new = Total_QuantEnergy.real() + Total_ClassEnergy.real();
+    Energy_diff = abs(Energy_new - Energy_old);
+    if(Convergence_technique=="SimpleMixing"){
+    Update_OParams_SimpleMixing();}
+    else{
+    assert(Convergence_technique=="AndersonMixing");
+    Update_OrderParameters_AndersonMixing(iter);
+    }
+
     Update_Hartree_Coefficients();
     Update_Fock_Coefficients();
     mu_old=mu_;
 
-    Convergence_out<<iter<<"   "<<diff_<<"   "<<mu_<<"   "<<Total_n_up<<"  "<<Total_n_dn<<endl;
+    Convergence_out<<iter<<"   "<<diff_<<"   ";
+    Convergence_out<<setprecision(10)<< scientific;
+    Convergence_out<<mu_<<"   "<<Total_QuantEnergy.real()<<"  "<<Total_QuantEnergy.imag()<<"  "<<Total_ClassEnergy.real()<<"   "<<Total_ClassEnergy.imag()<<"   "<<Total_n_up<<"  "<<Total_n_dn<<"   "<<Energy_diff<<endl;
 
 //-------REMOVE LATER ------------
 /* 
@@ -2331,14 +2978,14 @@ for(int col_val=0;col_val<OParams_new[kSL_ind].n_col();col_val++){
 //-----------------------------------
 
 
-
+    Energy_old=Energy_new;
     iter++;
     }
 
 
 
 
-    string file_OP="Final_Oparams.txt";
+    string file_OP=Parameters_.OP_out_file;
     ofstream file_OP_out(file_OP.c_str());
     file_OP_out<<"#k_sublattice  row_val   col_val  value.real  value.imag"<<endl;
 for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
@@ -2762,7 +3409,7 @@ overlaps_.resize(2);
 
 complex<double> temp_overlap;
 
-for(int layer=0;layer<2;layer++){
+for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
 overlaps_[layer]=0.0;
 
 for(int g_ind1=0;g_ind1<G_grid_L1;g_ind1++){
@@ -2789,9 +3436,14 @@ overlaps_[layer] += temp_overlap.real();
 
 }
 
-
+if(Parameters_.max_layer_ind==2){
 overlap_top=overlaps_[TOP_];
 overlap_bottom=overlaps_[BOTTOM_];
+}
+if(Parameters_.max_layer_ind==1){
+overlap_bottom=overlaps_[0];
+overlap_top=0.0;
+}
 
 }
 
@@ -3005,7 +3657,7 @@ int comp1, comp2;
 int g1_ind1, g1_ind2, g2_ind1, g2_ind2;
 for(int g_ind1=0;g_ind1<G_grid_L1;g_ind1++){
 for(int g_ind2=0;g_ind2<G_grid_L2;g_ind2++){
-for(int layer=0;layer<2;layer++){
+for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
     
     g1_ind1= g_ind1 + G1_off1;
     g1_ind2= g_ind2 + G1_off2;
@@ -3040,7 +3692,7 @@ void Hamiltonian::PrintBlochStates(){
 
 int comp, k_ind;
 for(int spin=0;spin<2;spin++){
-    for(int layer=0;layer<2;layer++){
+    for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
         for(int band=0;band<Nbands;band++){
 string file_Bloch="BlochState_spin"+to_string(spin)+ "_layer"+ to_string(layer) +"_band"+to_string(band)+".txt";
 ofstream fl_bloch_out(file_Bloch.c_str());

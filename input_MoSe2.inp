@@ -1,0 +1,55 @@
+MaterialName=MoSe2Homobilayer
+
+Psi_param_in_radians=3.141592653589793
+omega_param_in_meV=0
+
+Grid_moireReciprocalLattice_L1=9
+Grid_moireReciprocalLattice_L2=9
+
+a_monolayer_in_angstorm=3.295
+
+Twist_Theta_in_radians=0.0261799
+#3.5=0.06117
+#2.5=0.043633
+#1.5=0.0261799
+#4.5=0.07853975
+
+V1_param_in_meV=36.8
+V2_param_in_meV=8.4
+V3_param_in_meV=10.2
+
+
+#This is Mstar
+MStar_bottom_in_RestMass=1.17
+
+moire_BZ_L1=6
+moire_BZ_L2=6
+
+#Not Used-------
+Layer_Potential_bottom_Vz_in_meV=0.0
+Layer_Potential_top_Vz_in_meV=-0.0
+V_param_bottom_in_meV=0.0
+V_param_top_in_meV=0.0
+MStar_top_in_RestMass=0.62
+
+#-----------------------------
+
+
+MagField_ZeemanSplitting=0.0
+
+MagneticUnitCell_NMat_row1=3 0
+MagneticUnitCell_NMat_row2=0 3
+
+No_of_bands_used_for_HartreeFock=2
+eps_DE=20.0
+distance_to_gate_in_angstorm=200
+
+
+holedensity_per_moire_unit_cell=0.6666666
+Temperature_in_Kelvin=0.0001
+HF_convergence_error=0.0000001
+SimpleMixing_alpha=1.0
+#alpha*new  + (1-alpha)*old
+Max_HFIterations=10000
+RandomSeed=6
+

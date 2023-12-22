@@ -30,6 +30,7 @@ public:
     void HTBCreate();   //::DONE
     void HTBCreate_MoTe2Homobilayer();
     void HTBCreate_MoTe2WSe2Bilayer();
+    void HTBCreate_GammaValleyHomobilayer();
     double NIEnergy(double kx_val, double ky_val);
 
     void Diagonalize(char option);   //::DONE
@@ -37,7 +38,9 @@ public:
     void Get_Overlap_layers(int state_ind);
 
     void Saving_NonInteractingSpectrum();
+    void NonInteractingSpectrum_AlongPath(Mat_1_intpair k_path);
     void Calculate_ChernNumbers();
+    Mat_1_intpair Get_k_path(int path_no);
 
     Parameters &Parameters_;
     Coordinates_ContinuumModel &Coordinates_;
@@ -75,7 +78,7 @@ void Hamiltonian_ContinuumModel::Initialize(){
     l2_=Parameters_.Grid_moireRL_L2;
     ns_ = l1_*l2_;
 
-    int space=ns_*2;
+    int space=ns_*Coordinates_.n_orbs_;
 
     HTB_.resize(space,space);
     Ham_.resize(space,space);
@@ -287,6 +290,62 @@ cout<<"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<<endl;
 
 
 
+
+void Hamiltonian_ContinuumModel::NonInteractingSpectrum_AlongPath(Mat_1_intpair k_path){
+
+
+    mbz_factor=1;
+    int L1_,L2_;
+    L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+    L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+    int N_bands = Parameters_.N_bands_HF;
+
+    int comp;
+
+
+    eigvals.resize(2);
+    for(int spin=0;spin<2;spin++){
+    eigvals[spin].resize(N_bands);
+        for(int n=0;n<N_bands;n++){
+            eigvals[spin][n].resize(((mbz_factor*L1_)+1)*((mbz_factor*L2_)+1));
+        }
+    }
+
+
+    int k_ind;
+
+    for(int spin=0;spin<=1;spin++){
+    string file_bands_out="Bands_energy_AlongPath_spin" + to_string(spin)+".txt";
+    ofstream FileBandsOut(file_bands_out.c_str());
+    FileBandsOut<<"#n1   n2   E0(n1,n2)   E1(n1,n2)  ..."<<endl;
+
+        valley = 2*spin -1;
+    for(int n_=0;n_<k_path.size();n_++){
+        int n1=k_path[n_].first;
+        int n2=k_path[n_].second;
+        FileBandsOut<<n_<<"   "<<n1<<"  "<<n2<<"  ";
+        k_ind = n1 + ((mbz_factor*L1_)+1)*n2;
+    //kx_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(1.0/(sqrt(3)*L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(sqrt(3)*L2_)));
+    //ky_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(-1.0/(L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(L2_)));
+
+    kx_=(2.0*PI/Parameters_.a_moire)*((n1)*(1.0/(sqrt(3)*L1_))  +  (n2)*(1.0/(sqrt(3)*L2_)));
+    ky_=(2.0*PI/Parameters_.a_moire)*((n1)*(-1.0/(L1_))  +  (n2)*(1.0/(L2_)));
+
+    HTBCreate();
+    char Dflag='V';
+    Diagonalize(Dflag);
+
+    for(int n=0;n<N_bands;n++){
+       FileBandsOut<<eigs_[n]<<"  ";
+    }
+    FileBandsOut<<endl;
+    }
+    }
+
+
+
+}
+
 void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum(){
 
         
@@ -353,7 +412,7 @@ void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum(){
             for(int i1=0;i1<l1_;i1++){
                 for(int i2=0;i2<l2_;i2++){
                    // fl_BlochState_out<<i1<<" "<<i2<<"  "; 
-                for(int orb=0;orb<2;orb++){//layer
+                for(int orb=0;orb< Coordinates_.n_orbs_ ;orb++){//layer
                 comp=Coordinates_.Nbasis(i1, i2, orb);
                 BlochStates[spin][n][k_ind][comp]=Ham_(comp,n);
                 // fl_BlochState_out<<BlochStates[spin][n][k_ind][comp].real()<<"  "<<BlochStates[spin][n][k_ind][comp].imag()<<"  ";
@@ -485,8 +544,14 @@ void Hamiltonian_ContinuumModel::HTBCreate(){
     if(Parameters_.MaterialName=="MoTe2WSe2Bilayer"){
         HTBCreate_MoTe2WSe2Bilayer();
     }
+    if(Parameters_.MaterialName=="MoSe2Homobilayer" || Parameters_.MaterialName=="MoS2Homobilayer" ||
+       Parameters_.MaterialName=="WS2Homobilayer"){
+       HTBCreate_GammaValleyHomobilayer();
+    }
 
-    if(!(Parameters_.MaterialName=="MoTe2WSe2Bilayer" || Parameters_.MaterialName=="MoTe2Homobilayer")
+    if(!(Parameters_.MaterialName=="MoTe2WSe2Bilayer" || Parameters_.MaterialName=="MoTe2Homobilayer" ||
+         Parameters_.MaterialName=="MoSe2Homobilayer" || Parameters_.MaterialName=="MoS2Homobilayer" ||
+         Parameters_.MaterialName=="WS2Homobilayer")
     ){
         cout<<"Requires correct MaterialName in input file"<<endl;
         assert(false);
@@ -856,6 +921,175 @@ void Hamiltonian_ContinuumModel::HTBCreate_MoTe2Homobilayer(){
 
 } // ----------
 
+
+void Hamiltonian_ContinuumModel::HTBCreate_GammaValleyHomobilayer(){
+
+    //This is written in hole operators
+
+    Ham_.resize(ns_,ns_);
+    double b1x_, b1y_, b2x_, b2y_;
+    b1x_=(2.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire);
+    b1y_=(0.0)*(2.0*PI/Parameters_.a_moire);
+    b2x_=(1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire);
+    b2y_=(1.0)*(2.0*PI/Parameters_.a_moire);
+
+    int Bottom_, Top_;
+    Bottom_=0;Top_=1;
+
+    //l1_/2,l2_/2 is the k-point
+
+    Mat_2_int neigh_G_shell_1, neigh_G_shell_2;
+    neigh_G_shell_1.resize(3);neigh_G_shell_2.resize(3);
+    for(int s=0;s<3;s++){
+    neigh_G_shell_1[s].resize(6);
+    neigh_G_shell_2[s].resize(6);
+    }
+
+    //shell=1
+    neigh_G_shell_1[0][0]=1;neigh_G_shell_2[0][0]=0;
+    neigh_G_shell_1[0][1]=0;neigh_G_shell_2[0][1]=1;
+    neigh_G_shell_1[0][2]=-1;neigh_G_shell_2[0][2]=1;
+    neigh_G_shell_1[0][3]=-1;neigh_G_shell_2[0][3]=0;
+    neigh_G_shell_1[0][4]=0;neigh_G_shell_2[0][4]=-1;
+    neigh_G_shell_1[0][5]=1;neigh_G_shell_2[0][5]=-1;
+
+    //shell=2
+    neigh_G_shell_1[1][0]=1;neigh_G_shell_2[1][0]=1;
+        neigh_G_shell_1[1][1]=-1;neigh_G_shell_2[1][1]=2;
+        neigh_G_shell_1[1][2]=-2;neigh_G_shell_2[1][2]=1;
+        neigh_G_shell_1[1][3]=-1;neigh_G_shell_2[1][3]=-1;
+        neigh_G_shell_1[1][4]=1;neigh_G_shell_2[1][4]=-2;
+        neigh_G_shell_1[1][5]=2;neigh_G_shell_2[1][5]=-1;
+
+    //shell=3
+        neigh_G_shell_1[2][0]=2;neigh_G_shell_2[2][0]=0;
+        neigh_G_shell_1[2][1]=0;neigh_G_shell_2[2][1]=2;
+        neigh_G_shell_1[2][2]=-2;neigh_G_shell_2[2][2]=2;
+        neigh_G_shell_1[2][3]=-2;neigh_G_shell_2[2][3]=0;
+        neigh_G_shell_1[2][4]=0;neigh_G_shell_2[2][4]=-2;
+        neigh_G_shell_1[2][5]=2;neigh_G_shell_2[2][5]=-2;
+
+
+
+
+    Mat_1_doub VParams;
+    VParams.resize(3);
+    VParams[0]=Parameters_.V1_param;
+    VParams[1]=Parameters_.V2_param;
+    VParams[2]=Parameters_.V3_param;
+
+
+    double kx_local, ky_local;
+
+    int row, col;
+    int i1_neigh, i2_neigh;
+    for(int i1=0;i1<l1_;i1++){
+        for(int i2=0;i2<l2_;i2++){
+            kx_local = kx_ + (-(l1_/2)+i1)*(b1x_) + (-(l2_/2)+i2)*(b2x_);
+            ky_local = ky_ + (-(l1_/2)+i1)*(b1y_) + (-(l2_/2)+i2)*(b2y_);
+
+                row=Coordinates_.Nbasis(i1, i2, 0);
+
+                    //1
+                    col = row;
+                    Ham_(row,col) += -(1.0/Parameters_.MStar_bottom)*NIEnergy(kx_local, ky_local);
+
+                    //cout<<row<<" "<<col<<" "<<-(1.0/Parameters_.MStar_bottom)*NIEnergy(kx_local, ky_local)<<endl;
+
+             for (int s=0;s<3;s++){
+
+            for(int neigh_ind=0;neigh_ind<6;neigh_ind++){
+            i1_neigh = i1 + neigh_G_shell_1[s][neigh_ind];
+                        i2_neigh = i2 + neigh_G_shell_2[s][neigh_ind];
+
+            if( (i1_neigh<l1_)  && (i2_neigh<l2_)  && (i1_neigh>=0)  && (i2_neigh>=0)  ){
+            col = Coordinates_.Nbasis(i1_neigh, i2_neigh, 0);
+                        Ham_(row,col) += -1.0*VParams[s]*exp(iota_complex*Parameters_.Psi_param);
+            }
+
+            }
+
+
+             }
+
+
+        }
+    }
+
+
+
+} // ----------
+
+
+Mat_1_intpair Hamiltonian_ContinuumModel::Get_k_path(int path_no){
+
+int n1, n2;
+        Mat_1_intpair k_path;
+        k_path.clear();
+
+        pair_int temp_pair;
+        int L1_,L2_;
+        L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+        L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+
+
+
+        if(path_no==1){
+        //K+' to K-
+        n1=int(2*L1_/3);
+        n2=int(L2_/3);
+        while(n2>=int(-L2_/3)){
+            temp_pair.first = n1;
+            temp_pair.second = n2;
+            k_path.push_back(temp_pair);
+            n2--;
+            n1=int(2*L1_/L2_)*n2;
+        }
+
+        //K- to K+
+        n1=int(-2*L1_/3);
+        n2=int(-L2_/3);
+        n2--;n1++;
+        while(n1<=int(-L1_/3)){
+            temp_pair.first = n1;
+            temp_pair.second = n2;
+            k_path.push_back(temp_pair);
+            n2--;
+            n1++;
+        }
+
+        //K+ to K+'
+        n1=int(-L1_/3);
+        n2=int(-2*L2_/3);
+        n2=n2+2; //in principle it should be n2=n2+1, n1=n1+1
+        n1=n1+2;
+        while(n1<=int(2*L1_/3)){
+            temp_pair.first = n1;
+            temp_pair.second = n2;
+            k_path.push_back(temp_pair);
+            n2=n2+2;  //in principle it should be n2=n2+1, n1=n1+1
+            n1=n1+2;
+        }
+
+        } //path no. = 1
+
+
+
+
+        //path no. =2
+        if(path_no==2){
+            for(int n1_=0;n1_<L1_;n1_++){
+             for(int n2_=0;n2_<L2_;n2_++){
+            temp_pair.first = n1_;
+            temp_pair.second = n2_;
+            k_path.push_back(temp_pair);
+             }}
+        }
+
+
+return k_path;
+
+}
 
 
 void Hamiltonian_ContinuumModel::copy_eigs(int i){

@@ -27,12 +27,26 @@ public:
     int Max_HFIterations;
     double HF_convergence_error;
     double SimpleMixing_alpha;
+    string Convergence_technique;
 
+    int AM_m; //Anderson_Mixing_m;
+
+    bool Read_OPs_bool;
+    string OP_input_file;
+    string OP_out_file;
 
     int RandomSeed;
-    string MaterialName;    
+    string MaterialName;
+
+    int max_layer_ind;
+
+    //For Gamma-valley bilayers
+    double V1_param, V2_param, V3_param;
+
+
     void Initialize(string inputfile_);
     double matchstring(string file,string match);
+    bool matchstring3(string file,string match);
     string matchstring2(string file,string match);
 
 
@@ -48,6 +62,12 @@ void Parameters::Initialize(string inputfile_){
 
     MaterialName=matchstring2(inputfile_, "MaterialName");
 
+    if(MaterialName == "MoSe2Homobilayer" || MaterialName == "MoS2Homobilayer" ||
+       MaterialName == "WS2Homobilayer"){
+    V1_param = matchstring(inputfile_,"V1_param_in_meV");
+    V2_param = matchstring(inputfile_,"V2_param_in_meV");
+    V3_param = matchstring(inputfile_,"V3_param_in_meV");
+    }
 
     holesdensity_per_moire_unit_cell=matchstring(inputfile_, "holedensity_per_moire_unit_cell");
     Temperature = matchstring(inputfile_, "Temperature_in_Kelvin");
@@ -69,6 +89,9 @@ void Parameters::Initialize(string inputfile_){
     MUC_row1 = matchstring2(inputfile_,"MagneticUnitCell_NMat_row1");
     MUC_row2 = matchstring2(inputfile_,"MagneticUnitCell_NMat_row2");
 
+    Convergence_technique=matchstring2(inputfile_,"Convergence_technique");
+    AM_m=int(matchstring(inputfile_,"Anderson_mixing_m"));
+
     N_bands_HF = int(matchstring(inputfile_,"No_of_bands_used_for_HartreeFock"));
 
     a_monolayer = matchstring(inputfile_,"a_monolayer_in_angstorm");
@@ -81,6 +104,12 @@ void Parameters::Initialize(string inputfile_){
     Vz_bottom=matchstring(inputfile_,"Layer_Potential_bottom_Vz_in_meV");
 
     
+    Read_OPs_bool=matchstring3(inputfile_, "Read_OrderParams");
+    OP_input_file=matchstring2(inputfile_, "OrderParamsInputFile");
+    OP_out_file=matchstring2(inputfile_, "OrderParamsOutputFile");
+
+
+
     stringstream MUC_row1_ss(MUC_row1);
     stringstream MUC_row2_ss(MUC_row2);
     NMat_MUC.resize(2,2);
@@ -137,7 +166,8 @@ void Parameters::Initialize(string inputfile_){
     ValleyTau=1;
     assert(abs(ValleyTau)==1);
 
-    if(MaterialName=="MoTe2Homobilayer"){
+    if(MaterialName=="MoTe2Homobilayer" || MaterialName=="MoSe2Homobilayer" ||
+       MaterialName=="MoS2Homobilayer" || MaterialName=="WS2Homobilayer"){
     a_moire = a_monolayer/abs(TwistTheta);
     }
     if(MaterialName=="MoTe2WSe2Bilayer"){
@@ -147,6 +177,26 @@ void Parameters::Initialize(string inputfile_){
     a_moire = (a_bottom*a_top)/(a_bottom-a_top);
     }
     cout<<"a_moire (in Angstorm)= "<<a_moire<<endl;
+
+
+
+
+
+
+    if(MaterialName == "MoSe2Homobilayer" ||
+       MaterialName == "MoS2Homobilayer" ||
+       MaterialName == "WS2Homobilayer"){
+    max_layer_ind=1;
+    }
+    else if(MaterialName=="MoTe2Homobilayer"){
+    max_layer_ind=2;
+    }
+    else{
+        assert(false);
+        cout<<"This model is not working"<<endl;
+    }
+
+
 
 
 
@@ -217,6 +267,46 @@ string Parameters::matchstring2(string file,string match) {
     cout << match << " = " << amount << endl;
     return amount;
 }
+
+bool Parameters::matchstring3(string file,string match) {
+
+    string line;
+    ifstream readFile(file);
+    string amount;
+    bool amount_bool;
+    int offset;
+
+    if(readFile.is_open())
+    {
+        while(!readFile.eof())
+        {
+            getline(readFile,line);
+
+            if ((offset = line.find(match, 0)) != string::npos) {
+                amount = line.substr (offset+match.length()+1);				}
+
+        }
+        readFile.close();
+    }
+    else
+    {cout<<"Unable to open input file while in the Parameters class."<<endl;}
+
+
+
+
+    cout << match << " = " << amount << endl;
+
+    assert(amount=="true" || amount=="false");
+
+    if(amount=="true"){
+      amount_bool=true;
+    }
+    else{
+      amount_bool=false;
+    }
+    return amount_bool;
+}
+
 
 #endif
 
