@@ -885,7 +885,7 @@ for(int spin_p=0;spin_p<2;spin_p++){
                   k_sublattices[kset_ind].size()*Nbands*spin_p;
 
        Total_ClassEnergy += (-0.5)*HartreeCoefficients[kset_ind][k2_ind][k3_ind][band2][band3][spin_p]*
-                                OParams_new[kset_ind](row_ind,col_ind);
+                                OParams[kset_ind](row_ind,col_ind);
     }
     }
     }
@@ -913,7 +913,7 @@ for(int spin_p=0;spin_p<2;spin_p++){
                   k_sublattices[kset_ind].size()*Nbands*spin;
 
       Total_ClassEnergy += (0.5)*FockCoefficients[kset_ind][k2_ind][k3_ind][band2][band4][spin][spin_p]*
-                            OParams_new[kset_ind](row_ind,col_ind);
+                            OParams[kset_ind](row_ind,col_ind);
     }
     }
 
@@ -2656,8 +2656,14 @@ void Hamiltonian::Update_OrderParameters_AndersonMixing(int iter){
         x_kp1_.clear();
         x_kp1_.resize(OP_size);
         for(int i=0;i<OP_size;i++){
-            x_kp1_[i] = (1.0 - 0.0*alpha_mixing)*xbar_k_[i]  +
+            if(iter==1){
+            x_kp1_[i] = (1.0 - 1.0*alpha_mixing)*xbar_k_[i]  +
                     alpha_mixing*fbar_k_[i];
+            }
+            else{
+            x_kp1_[i] = (1.0 - 0.0*alpha_mixing)*xbar_k_[i]  +
+                        alpha_mixing*fbar_k_[i];
+            }
         }
 
 
@@ -2673,6 +2679,7 @@ void Hamiltonian::Update_OrderParameters_AndersonMixing(int iter){
 
         for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
             for(int row_i=0;row_i<OParams[kSL_ind].n_row();row_i++){
+                OParams[kSL_ind](row_i, row_i).imag(0);
                 for(int col_i=0;col_i<OParams[kSL_ind].n_col();col_i++){
              if(col_i>row_i){
             OParams[kSL_ind](col_i, row_i) = conj(OParams[kSL_ind](row_i, col_i));

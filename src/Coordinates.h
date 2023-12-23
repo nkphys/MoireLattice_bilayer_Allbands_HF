@@ -40,40 +40,40 @@ public:
 */
 
 int Coordinates::indx_basiswise(int i){
-    if(i>nbasis_-1){perror("Coordinates.h:x-coordinate of lattice excede limit");}
+    if(i>nbasis_-1){perror("Coordinates.h:indx_basiswise:x-coordinate of lattice excede limit");}
     return indx_basiswise_[i];
     // ----------
 }
 
 
 int Coordinates::indy_basiswise(int i){
-    if(i>nbasis_-1){perror("Coordinates.h:y-coordinate of lattice excede limit");}
+    if(i>nbasis_-1){perror("Coordinates.h:indy_basiswise:y-coordinate of lattice excede limit");}
     return indy_basiswise_[i];
     // ----------
 }
 
 int Coordinates::indx_cellwise(int i){
-    if(i>ncells_-1){perror("Coordinates.h:x-coordinate of lattice excede limit");}
+    if(i>ncells_-1){perror("Coordinates.h:indx_cellwise:x-coordinate of lattice excede limit");}
     return indx_cellwise_[i];
     // ----------
 }
 
 
 int Coordinates::indy_cellwise(int i){
-    if(i>ncells_-1){perror("Coordinates.h:y-coordinate of lattice excede limit");}
+    if(i>ncells_-1){perror("Coordinates.h:indy_cellwise:y-coordinate of lattice excede limit");}
     return indy_cellwise_[i];
     // ----------
 }
 
 int Coordinates::Nbasis(int x, int y, int orb){
-    if(!( (x<lx_&& y<ly_) &&  orb<n_orbs_)){perror("Coordinates.h:ith-sitelabel of lattice excede limit");}
+    if(!( (x<lx_&& y<ly_) &&  orb<n_orbs_)){perror("Coordinates.h:Nbasis:ith-sitelabel of lattice excede limit");}
     return Nbasis_[x][y][orb];
     // ----------
 }
 
 
 int Coordinates::Ncell(int x, int y){
-    if(!(x<lx_&& y<ly_)){perror("Coordinates.h:ith-sitelabel of lattice excede limit");}
+    if(!(x<lx_&& y<ly_)){perror("Coordinates.h:Ncell:ith-sitelabel of lattice excede limit");}
     return Ncell_(x,y);
     // ----------
 }
@@ -82,7 +82,7 @@ int Coordinates::Ncell(int x, int y){
 int Coordinates::neigh(int cell, int wneigh){
     if(cell> (lx_*ly_)-1 || wneigh>=13){
         cout<<cell<<"  "<<wneigh<<endl;
-        perror("Coordinates.h:getneigh -> ifstatement-10");}
+        perror("Coordinates.h:neigh:getneigh -> ifstatement-10");}
     return neigh_(cell,wneigh);
 } // ----------
 
@@ -158,7 +158,7 @@ void Coordinates::Numbering(){
 
 
 int Coordinates::getneigh(int site,int wneigh){
-    if(site>ncells_-1 || wneigh>13){perror("Coordinates.h:getneigh -> ifstatement-1");}
+    if(site>ncells_-1 || wneigh>13){perror("Coordinates.h:getneigh:getneigh -> ifstatement-1");}
     int nx=indx_cellwise(site);
     int ny=indy_cellwise(site);
     int mx=0;
