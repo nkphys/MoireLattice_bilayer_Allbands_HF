@@ -366,7 +366,7 @@ void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum(){
           for(int n=0;n<N_bands;n++){
             BlochStates[spin][n].resize(((mbz_factor*L1_)+1)*((mbz_factor*L2_)+1));
             for(int i=0;i<((mbz_factor*L1_)+1)*((mbz_factor*L2_)+1);i++){  //k_ind
-               BlochStates[spin][n][i].resize(ns_*2); //G_ind*layer
+               BlochStates[spin][n][i].resize(ns_*Coordinates_.n_orbs_); //G_ind*layer
             }
           }
         }
@@ -1012,7 +1012,7 @@ void Hamiltonian_ContinuumModel::HTBCreate_GammaValleyHomobilayer(){
 
             for(int neigh_ind=0;neigh_ind<6;neigh_ind++){
             i1_neigh = i1 + neigh_G_shell_1[s][neigh_ind];
-                        i2_neigh = i2 + neigh_G_shell_2[s][neigh_ind];
+            i2_neigh = i2 + neigh_G_shell_2[s][neigh_ind];
 
             if( (i1_neigh<l1_)  && (i2_neigh<l2_)  && (i1_neigh>=0)  && (i2_neigh>=0)  ){
             col = Coordinates_.Nbasis(i1_neigh, i2_neigh, 0);

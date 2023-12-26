@@ -54,26 +54,40 @@ scale = 1.0
 set yr [-6:7]
 set xr [-1:12]
 unset cbr
-set cbr [-0.2:0.2]
+#set cbr [-0.2:0.2]
 set palette define (0 "red", 0.3 "red", 1.0 "blue")
 
 #p "RealSpace_OParams.txt" u ($3):($4):($8*10000):($7*10000):(sqrt($8*$8 + $7*$7 +$6*$6)) w vec arrowstyle 3 notitle
 #p "~/Desktop/Data_ACF/MoTe2Bilayer_HF_Runs/Filling1.0/TwistAngle2.5/N_MoireCells6x6/MagneticUC_N00_1_N01_0_N10_0_N11_1/N_HF_BANDS3/DistanceToGate200/epsilon4.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):($6*1200):($8*1200):(sqrt($8*$8 + $7*$7 + $6*$6)*1200) w vec arrowstyle 3 notitle
 #layer_0_RealSpace_OParams_moiresites.txt
 
-p "layer_0_RealSpace_OParams.txt" u ($3):($4):($6*500):($7*500):(($6)*500) w vec arrowstyle 3 notitle
+#p "/home/nitin/Desktop/Telperion/data4/home/nn7/Moire_HFRuns/Filling3.0/TwistAngle1.0/N_MoireCells6x6/MagneticUC_N00_6_N01_0_N10_0_N11_6/N_HF_BANDS3/DistanceToGate200_MagSplit0.00/epsilon10.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):($6*5000000):($7*500000):(($6)*50000) w vec arrowstyle 3 notitle
 #1:2:($2*0+10) with circles
+
+#p "/home/nitin/Desktop/Lisa1/GammaValleyRuns/Filling2.0/TwistAngle4.0/N_MoireCells6x6/MagneticUC_N00_1_N01_0_N10_0_N11_1/N_HF_BANDS2/DistanceToGate200_MagSplit0.00/epsilon15.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):($6*100):($7*100):(($6)*50) w vec arrowstyle 3 notitle
+#1:2:($2*0+10) with circles
+
+p "layer_0_RealSpace_OParams.txt" u ($3):($4):($8*400):($7*400):((1*$6*$6 + 1*$7*$7 + 1*$8*$8)) w vec arrowstyle 3 notitle
+#p "layer_0_RealSpace_OParams_moiresites.txt" u ($5):($6):($10*1000000):($9*1000000):((1*$8*$8 + 1*$9*$9 + 1*$10*$10)) w vec arrowstyle 3 notitle
 
 #set style fill transparent solid 0.6 noborder
 #p "layer_1_RealSpace_OParams.txt" u ($3):($4):(($5)*50.0):($5) with circles lc palette notitle
 
 
-#set palette defined (0 "white", 1.0 "blue")
-#set pm3d map
-#set pm3d corners2color c1
-#set pm3d interpolate 1,1
-#sp "layer_0_RealSpace_OParams.txt" u ($3):($4):(($5)*50.0) w pm3d map lc palette notitle
+set palette defined (0 "white", 1.0 "blue")
+set pm3d map
+set pm3d corners2color c1
+set pm3d interpolate 1,1
 
+#sp "/home/nitin/Desktop/Telperion/data4/home/nn7/Moire_HFRuns/Filling3.0/TwistAngle1.0/N_MoireCells6x6/MagneticUC_N00_6_N01_0_N10_0_N11_6/N_HF_BANDS3/DistanceToGate200_MagSplit0.00/epsilon10.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):(($5)*500.0) w pm3d map lc palette notitle
+#sp "/home/nitin/Desktop/Telperion/data4/home/nn7/GammaValleyRuns/Filling0.5/TwistAngle1.0/N_MoireCells6x6/MagneticUC_N00_6_N01_0_N10_0_N11_6/N_HF_BANDS2/DistanceToGate200_MagSplit0.00/epsilon4.0/RandomSeed3/layer_0_RealSpace_OParams.txt" u ($3):($4):(($5)*500.0) w pm3d map lc palette notitle
+
+#sp "/home/nitin/Desktop/Lisa1/GammaValleyRuns/Filling2.0/TwistAngle1.0/N_MoireCells6x6/MagneticUC_N00_3_N01_0_N10_0_N11_3/N_HF_BANDS2/DistanceToGate200_MagSplit0.00/epsilon80.0/RandomSeed3/layer_0_RealSpace_OParams.txt" u ($3):($4):(($5)*500.0) w pm3d map lc palette notitle
+
+#sp "/home/nitin/Desktop/Lisa2/GammaValleyRuns/Filling1.0/TwistAngle1.0/N_MoireCells6x6/MagneticUC_N00_6_N01_0_N10_0_N11_6/N_HF_BANDS2/DistanceToGate200_MagSplit0.00/epsilon10.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):(($5)*500000000.0) w pm3d map lc palette notitle
+
+#set cbr [0:1]
+#sp "layer_0_RealSpace_OParams.txt" u ($3):($4):((($5))*50.0) w pm3d map lc palette notitle
 
 #p "layer_0_RealSpace_OParams_moiresites.txt" u ($5 - 0.5*$8*0.2):($6 - 0.5*$10*0.2):($9*4000.2):($10*4000.2):(sqrt($8*$8 + $9*$9 +$10*$10)) w vec arrowstyle 3 notitle
 
