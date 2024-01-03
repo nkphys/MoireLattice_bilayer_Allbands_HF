@@ -94,6 +94,7 @@ public:
     void Saving_BlochState_Overlaps();
     void Calculate_ChernNumbers_HFBands();
     void Calculate_layer_resolved_densities();
+    void Write_ordered_spectrum(string filename);
     //---------------------------------------
    
 
@@ -160,6 +161,8 @@ public:
     Mat_2_Complex_doub N_layer_tau;
 
     complex<double> Total_QuantEnergy, Total_ClassEnergy;
+
+    Mat_1_doub Eigenvalues_ordered;
 //------------------
     
     double kx_, ky_;
@@ -196,6 +199,45 @@ public:
     Matrix<double> X_mat, F_mat;
 
 };
+
+
+
+
+
+void Hamiltonian::Write_ordered_spectrum(string filename){
+
+    ofstream fileout(filename.c_str());
+
+    double value_;
+    Mat_1_Complex_doub Vec_temp;
+    Vec_temp.resize(6);
+
+    fileout<<"#index  Eigenvalue"<<endl;
+    Eigenvalues_ordered.clear();
+    for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+        for(int i=0;i<EigValues[kSL_ind].size();i++){
+       Eigenvalues_ordered.push_back(EigValues[kSL_ind][i]);
+        }}
+
+
+   //in increasing order
+    for(int i=0;i<Eigenvalues_ordered.size();i++){
+        for(int j=i+1;j<Eigenvalues_ordered.size();j++){
+            if(Eigenvalues_ordered[j]<Eigenvalues_ordered[i]){
+                value_=Eigenvalues_ordered[i];
+                Eigenvalues_ordered[i]=Eigenvalues_ordered[j];
+                Eigenvalues_ordered[j]=value_;
+            }
+        }
+    }
+
+    for(int i=0;i<Eigenvalues_ordered.size();i++){
+        fileout<<i<<"  "<<Eigenvalues_ordered[i]<<endl;
+    }
+
+
+}
+
 
 
 
@@ -1309,9 +1351,9 @@ double val;
 void Hamiltonian::Print_SPDOS(string filename){
 
 double dw=0.01;
-double eta=0.01;
-double w_min = EigVal_min-1.0;
-double w_max = EigVal_max+1.0;
+double eta=0.2;
+double w_min = EigVal_min-5.0;
+double w_max = EigVal_max+5.0;
 double dos_;
 
 ofstream file_out(filename.c_str());
@@ -1330,6 +1372,7 @@ file_out<<w_val<< "   "<<dos_<<endl;
 w_val +=dw;
 }
 
+file_out<<"#mu = "<<mu_<<endl;
 }
 
 
@@ -3639,7 +3682,8 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
 
 
     Calculate_Total_Spin();
-    //Print_SPDOS("DOS.txt");
+    Print_SPDOS("DOS.txt");
+    Write_ordered_spectrum("Eigenvalues.txt");
     Calculate_layer_resolved_densities();
 
     Print_HF_Bands();

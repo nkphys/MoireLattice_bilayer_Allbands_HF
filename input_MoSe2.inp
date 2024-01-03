@@ -24,8 +24,8 @@ V3_param_in_meV=10.2
 #This is Mstar
 MStar_bottom_in_RestMass=1.17
 
-moire_BZ_L1=3
-moire_BZ_L2=3
+moire_BZ_L1=6
+moire_BZ_L2=6
 
 #Not Used-------
 Layer_Potential_bottom_Vz_in_meV=0.0
@@ -39,8 +39,8 @@ MStar_top_in_RestMass=0.62
 
 MagField_ZeemanSplitting=0.0
 
-MagneticUnitCell_NMat_row1=3 0
-MagneticUnitCell_NMat_row2=0 3
+MagneticUnitCell_NMat_row1=1 0
+MagneticUnitCell_NMat_row2=0 1
 
 No_of_bands_used_for_HartreeFock=2
 eps_DE=40.0
@@ -51,7 +51,7 @@ OrderParamsInputFile=OP_6x6_6x6.txt
 OrderParamsOutputFile=OP_Temp0.001_new.txt
 
 
-holedensity_per_moire_unit_cell=3.0
+holedensity_per_moire_unit_cell=2.0
 
 Temperature_in_Kelvin=0.0001
 HF_convergence_error=0.00000001
