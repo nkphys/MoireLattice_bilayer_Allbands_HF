@@ -30,6 +30,7 @@ public:
     void HTBCreate();   //::DONE
     void HTBCreate_MoTe2Homobilayer();
     void HTBCreate_MoTe2WSe2Bilayer();
+    void HTBCreate_WSe2WS2Bilayer();
     void HTBCreate_GammaValleyHomobilayer();
     double NIEnergy(double kx_val, double ky_val);
 
@@ -546,12 +547,15 @@ void Hamiltonian_ContinuumModel::HTBCreate(){
     if(Parameters_.MaterialName=="MoTe2WSe2Bilayer"){
         HTBCreate_MoTe2WSe2Bilayer();
     }
+    if(Parameters_.MaterialName=="WSe2WS2Bilayer"){
+        HTBCreate_WSe2WS2Bilayer();
+    }
     if(Parameters_.MaterialName=="MoSe2Homobilayer" || Parameters_.MaterialName=="MoS2Homobilayer" ||
        Parameters_.MaterialName=="WS2Homobilayer"){
        HTBCreate_GammaValleyHomobilayer();
     }
 
-    if(!(Parameters_.MaterialName=="MoTe2WSe2Bilayer" || Parameters_.MaterialName=="MoTe2Homobilayer" ||
+    if(!(Parameters_.MaterialName=="WSe2WS2Bilayer"  || Parameters_.MaterialName=="MoTe2WSe2Bilayer" || Parameters_.MaterialName=="MoTe2Homobilayer" ||
          Parameters_.MaterialName=="MoSe2Homobilayer" || Parameters_.MaterialName=="MoS2Homobilayer" ||
          Parameters_.MaterialName=="WS2Homobilayer")
     ){
@@ -916,6 +920,128 @@ void Hamiltonian_ContinuumModel::HTBCreate_MoTe2Homobilayer(){
                 }
 
             }
+        }
+    }
+
+
+
+} // ----------
+
+
+
+
+void Hamiltonian_ContinuumModel::HTBCreate_WSe2WS2Bilayer(){
+
+    //This is written in hole operators
+
+    Ham_.resize(ns_,ns_);
+    double b1x_, b1y_, b6x_, b6y_, b2x_, b2y_;
+
+    //G1+G2
+    b1x_=(2.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G1+G2
+    b1y_=(0.0)*(2.0*PI/Parameters_.a_moire);
+
+    //G1
+    b6x_=(1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G1
+    b6y_=(-1.0)*(2.0*PI/Parameters_.a_moire);
+
+
+    //G2
+    b2x_=(1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G2
+    b2y_=(1.0)*(2.0*PI/Parameters_.a_moire);  //G2
+
+
+    int Bottom_, Top_;
+    Bottom_=0;Top_=1;
+
+    double fac_;
+
+    //l1_/2,l2_/2 is the k-point
+
+    Mat_2_int neigh_G_shell_1, neigh_G_shell_2;
+    neigh_G_shell_1.resize(3);neigh_G_shell_2.resize(3);
+    for(int s=0;s<3;s++){
+    neigh_G_shell_1[s].resize(6);
+    neigh_G_shell_2[s].resize(6);
+    }
+
+    //shell=1
+    neigh_G_shell_1[0][0]=1;neigh_G_shell_2[0][0]=1; //g1
+    neigh_G_shell_1[0][1]=0;neigh_G_shell_2[0][1]=1;
+    neigh_G_shell_1[0][2]=-1;neigh_G_shell_2[0][2]=0;
+    neigh_G_shell_1[0][3]=-1;neigh_G_shell_2[0][3]=-1;
+    neigh_G_shell_1[0][4]=0;neigh_G_shell_2[0][4]=-1;
+    neigh_G_shell_1[0][5]=1;neigh_G_shell_2[0][5]=0;
+
+    //shell=2
+    neigh_G_shell_1[1][0]=1;neigh_G_shell_2[1][0]=2;
+        neigh_G_shell_1[1][1]=-1;neigh_G_shell_2[1][1]=1;
+        neigh_G_shell_1[1][2]=-2;neigh_G_shell_2[1][2]=-1;
+        neigh_G_shell_1[1][3]=-1;neigh_G_shell_2[1][3]=-2;
+        neigh_G_shell_1[1][4]=1;neigh_G_shell_2[1][4]=-1;
+        neigh_G_shell_1[1][5]=2;neigh_G_shell_2[1][5]=1;
+
+    //shell=3
+        neigh_G_shell_1[2][0]=2;neigh_G_shell_2[2][0]=2;
+        neigh_G_shell_1[2][1]=0;neigh_G_shell_2[2][1]=2;
+        neigh_G_shell_1[2][2]=-2;neigh_G_shell_2[2][2]=0;
+        neigh_G_shell_1[2][3]=-2;neigh_G_shell_2[2][3]=-2;
+        neigh_G_shell_1[2][4]=0;neigh_G_shell_2[2][4]=-2;
+        neigh_G_shell_1[2][5]=2;neigh_G_shell_2[2][5]=0;
+
+
+
+
+    Mat_1_doub VParams;
+    VParams.resize(3);
+    VParams[0]=Parameters_.V1_param;
+    VParams[1]=Parameters_.V2_param;
+    VParams[2]=Parameters_.V3_param;
+
+
+    double kx_local, ky_local;
+
+    int row, col;
+    int i1_neigh, i2_neigh;
+    for(int i1=0;i1<l1_;i1++){
+        for(int i2=0;i2<l2_;i2++){
+            kx_local = kx_ + (-(l1_/2)+i1)*(b6x_) + (-(l2_/2)+i2)*(b2x_);
+            ky_local = ky_ + (-(l1_/2)+i1)*(b6y_) + (-(l2_/2)+i2)*(b2y_);
+
+                row=Coordinates_.Nbasis(i1, i2, 0);
+
+                    //1
+                    col = row;
+                    Ham_(row,col) += -(1.0/Parameters_.MStar_bottom)*NIEnergy(kx_local, ky_local);
+
+                    //cout<<row<<" "<<col<<" "<<-(1.0/Parameters_.MStar_bottom)*NIEnergy(kx_local, ky_local)<<endl;
+
+             for (int s=0;s<1;s++){
+
+            for(int neigh_ind=0;neigh_ind<6;neigh_ind++){
+
+
+                if(neigh_ind==0 || neigh_ind==2 || neigh_ind==4){
+                    fac_=-1.0;
+                }
+                else{
+                    fac_=1.0;
+                }
+
+            i1_neigh = i1 + neigh_G_shell_1[s][neigh_ind];
+            i2_neigh = i2 + neigh_G_shell_2[s][neigh_ind];
+
+            if( (i1_neigh<l1_)  && (i2_neigh<l2_)  && (i1_neigh>=0)  && (i2_neigh>=0)  ){
+            col = Coordinates_.Nbasis(i1_neigh, i2_neigh, 0);
+                        Ham_(row,col) += -1.0*VParams[s]*exp(fac_*iota_complex*Parameters_.Psi_param);
+            }
+
+            }
+
+
+             }
+
+
         }
     }
 

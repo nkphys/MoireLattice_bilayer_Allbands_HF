@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
 
          Hamiltonian_.Calculate_ChernNumbers();
 
-         Coordinates Coordinates_HF_(Parameters_.moire_BZ_L1, Parameters_.moire_BZ_L2, 2);
+         Coordinates Coordinates_HF_(Parameters_.moire_BZ_L1, Parameters_.moire_BZ_L2, 1);
 
         // cout<<"CHECK Coordinates"<<endl;
         // for(int i=0;i<Parameters_.moire_BZ_L1*Parameters_.moire_BZ_L2;i++){

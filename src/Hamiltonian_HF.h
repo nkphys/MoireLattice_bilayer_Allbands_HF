@@ -74,6 +74,7 @@ public:
     void Get_max_and_min_eigvals();
     double Myrandom();
     void Initialize_OParams();
+    void Kick_OParams(double kick);
     void Print_Spectrum(int kset_ind, string filename);
     void Update_Hartree_Coefficients();
     void Update_Fock_Coefficients();
@@ -3015,6 +3016,17 @@ diff_ = sqrt(distance_sqr);
 }
 
 
+
+void Hamiltonian::Kick_OParams(double kick){
+    for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+    for(int row_val=0;row_val<OParams[kSL_ind].n_row();row_val++){
+    for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
+    OParams[kSL_ind](row_val,col_val) = OParams[kSL_ind](row_val,col_val) +
+                                        kick*Myrandom();
+
+    }}}
+}
+
 void Hamiltonian::Update_OParams_SimpleMixing(){
 
 
@@ -3485,6 +3497,10 @@ void Hamiltonian::Initialize_OParams(){
         string line;
         int kSL_ind_temp, row_val_temp, col_val_temp;
         double OP_real, OP_imag;
+//        char temp_char[50];
+//        sprintf(temp_char, "%.10f", Parameters_.Temperature);
+
+//        string inputfile = Parameters_.OP_input_file;
         ifstream fileOPin(Parameters_.OP_input_file.c_str());
         //fileOPin>>line;
         getline(fileOPin, line);
@@ -3581,11 +3597,27 @@ void Hamiltonian::RunSelfConsistency(){
     //     }
 
 
+    Initialize_OParams();
+    Update_Hartree_Coefficients();
+    Update_Fock_Coefficients();
 
-    string file_conv="HF_out.txt";
+
+
+    for(int Temp_no=0;Temp_no<Parameters_.Temperature_points.size();Temp_no++){
+
+        Parameters_.Temperature = Parameters_.Temperature_points[Temp_no];
+        Temperature = Parameters_.Temperature;
+        beta_=1.0/(KB_*Temperature);
+
+        cout<<"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<<endl;
+        cout<<"Temperature = "<<Parameters_.Temperature<<endl;
+
+        char temp_char[50];
+        sprintf(temp_char, "%.10f", Parameters_.Temperature);
+
+    string file_conv="HF_out_Temp" + string(temp_char) +".txt";
     ofstream Convergence_out(file_conv.c_str());
     Convergence_out<<"#iter   OP_diff   mu  QuantEnergy.real  .imag  ClassEnergy.real  .imag  Total_n_up    Total_n_dn   Energy_diff"<<endl;
-
 
     int N_Particles;
     N_Particles = int((nu_holes_target*ns_)+0.5);
@@ -3596,13 +3628,6 @@ void Hamiltonian::RunSelfConsistency(){
     double Energy_old =0.0;
     double Energy_new;
     double Energy_diff=10000.0;
-    //cout<<"here -1"<<endl;
-    Initialize_OParams();
-    //cout<<"here 0"<<endl;
-    Update_Hartree_Coefficients();
-    //cout<<"here 1"<<endl;
-    Update_Fock_Coefficients();
-    //cout<<"here 2"<<endl;
 
     while( !(iter>HF_max_iterations || (diff_<HF_convergence_error && Energy_diff<HF_convergence_error)) ){
 
@@ -3671,7 +3696,7 @@ for(int col_val=0;col_val<OParams_new[kSL_ind].n_col();col_val++){
 
 
 
-    string file_OP=Parameters_.OP_out_file;
+    string file_OP="Temperature_"+ string(temp_char) +Parameters_.OP_out_file;
     ofstream file_OP_out(file_OP.c_str());
     file_OP_out<<"#k_sublattice  row_val   col_val  value.real  value.imag"<<endl;
 for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
@@ -3682,9 +3707,13 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
 
 
     Calculate_Total_Spin();
-    Print_SPDOS("DOS.txt");
-    Write_ordered_spectrum("Eigenvalues.txt");
     Calculate_layer_resolved_densities();
+
+    string DOSFILE = "DOS_"+string(temp_char)+".txt";
+    Print_SPDOS(DOSFILE);
+
+    string EigenFile = "Eigenvalues"+string(temp_char)+".txt";
+    Write_ordered_spectrum(EigenFile);
 
     Print_HF_Bands();
 
@@ -3692,12 +3721,22 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     Calculate_ChernNumbers_HFBands();
     }
 
-    Calculate_RealSpace_OParams_important_positions_new("RealSpace_OParams_moiresites.txt");
-    Calculate_RealSpace_OParams_new3("RealSpace_OParams.txt");
+    string Oparams1_str = "Temp_"+string(temp_char)+"RealSpace_OParams_moiresites.txt";
+    string Oparams2_str = "Temp_"+string(temp_char)+"RealSpace_OParams.txt";
+
+    Calculate_RealSpace_OParams_important_positions_new(Oparams1_str);
+    Calculate_RealSpace_OParams_new3(Oparams2_str);
+
+    //Here
+    Kick_OParams(0.01);
+
 
     //Calculate_RealSpace_OParams_new("RealSpace_OParams_new.txt");
 
     //Calculate_RealSpace_OParams("RealSpace_OParams.txt","RealSpace_OParams2.txt");
+
+    }//Temperature
+
 
 }
 
@@ -4042,7 +4081,12 @@ cout<<"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<<endl;
 
 void Hamiltonian::Print_HF_Bands(){
 
-string file_bands="Bands_HF.txt";
+
+    char temp_char[50];
+    sprintf(temp_char, "%.10f", Temperature);
+
+
+string file_bands="Bands_HF"+string(temp_char)+".txt";
 ofstream file_bands_out(file_bands.c_str());
 
 double overlap_top, overlap_bottom;

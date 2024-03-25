@@ -89,7 +89,7 @@ int Coordinates::neigh(int cell, int wneigh){
 
 void Coordinates::Numbering(){
 
-    assert(n_orbs_==2);
+    //assert(n_orbs_==2);
     //orb=0 is "bottom", orb=1 is "top"
 
     nbasis_=lx_*ly_*n_orbs_;

@@ -31,6 +31,10 @@ public:
 
     int AM_m; //Anderson_Mixing_m;
 
+    bool Cooling;
+    Mat_1_doub Temperature_points;
+    double beta;
+
     bool Read_OPs_bool;
     string OP_input_file;
     string OP_out_file;
@@ -63,7 +67,7 @@ void Parameters::Initialize(string inputfile_){
     MaterialName=matchstring2(inputfile_, "MaterialName");
 
     if(MaterialName == "MoSe2Homobilayer" || MaterialName == "MoS2Homobilayer" ||
-       MaterialName == "WS2Homobilayer"){
+       MaterialName == "WS2Homobilayer" || MaterialName == "WSe2WS2Bilayer"){
     V1_param = matchstring(inputfile_,"V1_param_in_meV");
     V2_param = matchstring(inputfile_,"V2_param_in_meV");
     V3_param = matchstring(inputfile_,"V3_param_in_meV");
@@ -176,6 +180,12 @@ void Parameters::Initialize(string inputfile_){
     a_top = 3.32;
     a_moire = (a_bottom*a_top)/(a_bottom-a_top);
     }
+    if(MaterialName=="WSe2WS2Bilayer"){
+    double a_bottom, a_top;
+    a_bottom = 3.28; //in Angstorm
+    a_top = 3.15;
+    a_moire = (a_bottom*a_top)/(a_bottom-a_top);
+    }
     cout<<"a_moire (in Angstorm)= "<<a_moire<<endl;
 
 
@@ -185,7 +195,8 @@ void Parameters::Initialize(string inputfile_){
 
     if(MaterialName == "MoSe2Homobilayer" ||
        MaterialName == "MoS2Homobilayer" ||
-       MaterialName == "WS2Homobilayer"){
+       MaterialName == "WS2Homobilayer" ||
+       MaterialName == "WSe2WS2Bilayer"     ){
     max_layer_ind=1;
     }
     else if(MaterialName=="MoTe2Homobilayer"){
@@ -194,6 +205,27 @@ void Parameters::Initialize(string inputfile_){
     else{
         assert(false);
         cout<<"This model is not working"<<endl;
+    }
+
+
+
+    double Cooling_double=double(matchstring(inputfile_,"Cooling"));
+    if(Cooling_double==1.0){
+        Cooling=true;
+        string temp_string =  matchstring2(inputfile_,"Temperature_in_Kelvin");
+        stringstream temp_ss(temp_string);
+        int T_nos;
+        temp_ss>>T_nos;
+        Temperature_points.resize(T_nos);
+        for(int n=0;n<T_nos;n++){
+            temp_ss>>Temperature_points[n];
+        }
+    }
+    else{
+        Cooling=false;
+        Temperature = matchstring(inputfile_,"Temperature_in_Kelvin");
+        Temperature_points.resize(1);
+        Temperature_points[0]=Temperature;
     }
 
 

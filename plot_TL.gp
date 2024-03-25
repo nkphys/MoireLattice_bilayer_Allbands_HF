@@ -56,7 +56,9 @@ unset cbr
 set cbr [-0.1:0.1]
 set palette define (0 "red", 1.0 "blue")
 #p "RealSpace_OParams.txt" u ($3):($4):($8*10000):($7*10000):(sqrt($8*$8 + $7*$7 +$6*$6)) w vec arrowstyle 3 notitle
-p "layer_1_RealSpace_OParams.txt" u ($3):($4):($6*1200):($8*1200):(sqrt($8*$8 + $7*$7 + $6*$6)*1200) w vec arrowstyle 3 notitle
+#p "layer_0_RealSpace_OParams.txt" u ($3):($4):($6*1200):($8*1200):(sqrt($8*$8 + $7*$7 + $6*$6)*1200) w vec arrowstyle 3 notitle
+
+p "layer_0_Temp_0.0001000000RealSpace_OParams.txt" u ($3):($4):((($5))*1000) w p pt 7 ps var lc "black" notitle
 #p "layer_0_RealSpace_OParams_moiresites.txt" u ($5 - 0.5*$8*0.2):($6 - 0.5*$10*0.2):($8*0.2):($10*0.2):(sqrt($8*$8 + $9*$9 +$10*$10)) w vec arrowstyle 3 notitle
 #p "RealSpace_OParams_moiresites.txt" u ($5 - (0.0*$10) ):($6 -  ($9*0.0) ):($9):($10):($8) w vec arrowstyle 3 notitle
 #p "RealSpace_OParams.txt" u ($3):($4):($6*8000*1):($7*8000*1):($5) w vec arrowstyle 3 notitle 

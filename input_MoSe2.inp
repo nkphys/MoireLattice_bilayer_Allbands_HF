@@ -24,8 +24,8 @@ V3_param_in_meV=10.2
 #This is Mstar
 MStar_bottom_in_RestMass=1.17
 
-moire_BZ_L1=6
-moire_BZ_L2=6
+moire_BZ_L1=24
+moire_BZ_L2=24
 
 #Not Used-------
 Layer_Potential_bottom_Vz_in_meV=0.0
