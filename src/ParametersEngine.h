@@ -29,6 +29,7 @@ public:
     double SimpleMixing_alpha;
     string Convergence_technique;
 
+    string OP_details_str;
     int AM_m; //Anderson_Mixing_m;
 
     bool Cooling;
@@ -36,6 +37,7 @@ public:
     double beta;
 
     bool Read_OPs_bool;
+    string OP_Read_Type;
     string OP_input_file;
     string OP_out_file;
 
@@ -44,6 +46,7 @@ public:
 
     int max_layer_ind;
 
+    int l1_inp, l2_inp , M1_inp, M2_inp;
     //For Gamma-valley bilayers
     double V1_param, V2_param, V3_param;
 
@@ -109,10 +112,16 @@ void Parameters::Initialize(string inputfile_){
 
     
     Read_OPs_bool=matchstring3(inputfile_, "Read_OrderParams");
+    OP_Read_Type=matchstring2(inputfile_, "OrderParamsReadingType");
     OP_input_file=matchstring2(inputfile_, "OrderParamsInputFile");
     OP_out_file=matchstring2(inputfile_, "OrderParamsOutputFile");
+    OP_details_str=matchstring2(inputfile_, "OrderParamsReadingDetails_l1_l2_M1_M2");
+
+    stringstream OP_details_stream(OP_details_str);
+    OP_details_stream>>l1_inp>>l2_inp>>M1_inp>>M2_inp;
 
 
+    assert(OP_Read_Type=="RealSpace" || OP_Read_Type=="KSpace");
 
     stringstream MUC_row1_ss(MUC_row1);
     stringstream MUC_row2_ss(MUC_row2);

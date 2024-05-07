@@ -1,0 +1,8 @@
+node32.cluster
+Thu Apr 11 21:07:18 PDT 2024
+/var/spool/slurmd/job1628902/slurm_script: line 10: 27178 Segmentation fault      (core dumped) ./MoireBands input_run.inp > out_run.txt
+
+real	14m40.622s
+user	14m23.691s
+sys	0m17.397s
+Thu Apr 11 21:21:58 PDT 2024

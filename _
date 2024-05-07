@@ -46,15 +46,9 @@ No_of_bands_used_for_HartreeFock=1
 eps_DE=10.0
 distance_to_gate_in_angstorm=100
 
-Read_OrderParams=true
-OrderParamsReadingType=RealSpace
-OrderParamsReadingDetails_l1_l2_M1_M2=4 4 2 2
-#KSpace
-OrderParamsInputFile=layer_0_Temp_0.0001000000RealSpace_OParams_2x2_AFM.txt
-#layer_0_Temp_0.0001000000RealSpace_OParams_moiresites_test.txt
-#layer_0_Temp_0.0001000000RealSpace_OParams_2x2_AFM.txt
-#Temperature_0.0001000000OP_new2.txt
-OrderParamsOutputFile=OP_new.txt
+Read_OrderParams=false
+OrderParamsInputFile=OP_new.txt
+OrderParamsOutputFile=OP_new2.txt
 
 
 holedensity_per_moire_unit_cell=0.5
@@ -71,8 +65,8 @@ Convergence_technique=AndersonMixing
 SimpleMixing_alpha=0.4
 #alpha*new  + (1-alpha)*old
 
-Anderson_mixing_m=25
+Anderson_mixing_m=23
 
-Max_HFIterations=0
-RandomSeed=126
+Max_HFIterations=50000
+RandomSeed=24
 

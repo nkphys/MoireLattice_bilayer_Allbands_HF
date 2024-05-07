@@ -89,6 +89,7 @@ public:
     void Calculate_RealSpace_OParams_new3(string filename);
     void Calculate_RealSpace_OParams_important_positions(string filename2);
     void Calculate_RealSpace_OParams_important_positions_new(string filename);
+    void Calculate_RealSpace_OParams_important_positions_new3(string filename);
     void Print_HF_Bands();
     Mat_1_intpair Get_k_path(int path_no);
     void Get_layer_overlaps(double &overlap_top, double &overlap_bottom, int band, int spin, int q_ind1, int q_ind2);
@@ -96,6 +97,8 @@ public:
     void Calculate_ChernNumbers_HFBands();
     void Calculate_layer_resolved_densities();
     void Write_ordered_spectrum(string filename);
+
+    void Create_PMat();
     //---------------------------------------
    
 
@@ -147,6 +150,8 @@ public:
     Mat_9_Complex_doub Bmat, Amat;
     Mat_9_Complex_doub Xmat;
     Mat_7_Complex_doub Omat;
+
+    Mat_8_Complex_doub Pmat;
 
     Mat_4_Complex_doub Hbar, Fbar;
 
@@ -241,6 +246,224 @@ void Hamiltonian::Write_ordered_spectrum(string filename){
 
 
 
+
+void Hamiltonian::Calculate_RealSpace_OParams_important_positions_new3(string filename){
+
+
+
+    int M1, M2; //no. of slices of one moire unit cell
+    M1=10;M2=10;
+    int m1_max, m1_min, m2_max, m2_min; //range for full 2d lattice
+    m1_max = M1*l1_;m1_min=0;
+    m2_max = M2*l1_;m2_min=0;
+
+
+    double rx,ry;
+
+
+    Mat_8_Complex_doub Omat;
+    Omat.resize(2);//spin
+    for(int spin1=0;spin1<2;spin1++){
+    Omat[spin1].resize(2);
+    for(int spin2=0;spin2<2;spin2++){
+    Omat[spin1][spin2].resize(Parameters_.max_layer_ind);
+    for(int layer1=0;layer1<Parameters_.max_layer_ind;layer1++){
+    Omat[spin1][spin2][layer1].resize(Parameters_.max_layer_ind);
+    for(int layer2=0;layer2<Parameters_.max_layer_ind;layer2++){
+    Omat[spin1][spin2][layer1][layer2].resize(2*l1_-1); //-(l1-1)....(l1-1)
+    for(int kprime1_ind=0;kprime1_ind<2*l1_-1;kprime1_ind++){
+    Omat[spin1][spin2][layer1][layer2][kprime1_ind].resize(2*l2_-1);//-(l2-1)....(l2-1)
+    for(int kprime2_ind=0;kprime2_ind<2*l2_-1;kprime2_ind++){
+    Omat[spin1][spin2][layer1][layer2][kprime1_ind][kprime2_ind].resize(2*G_grid_L1-1);//-(L1-1)...(L1-1)
+    for(int Gprime1_ind=0;Gprime1_ind<2*G_grid_L1-1;Gprime1_ind++){
+    Omat[spin1][spin2][layer1][layer2][kprime1_ind][kprime2_ind][Gprime1_ind].resize(2*G_grid_L2-1);//-(L2-1)...(L2-1)
+    }}}}}}}
+
+
+
+    int kprime1_;
+    int kprime2_;
+    int Gprime1_;
+    int Gprime2_;
+    int k1_min, k2_min, k1_size;
+    int k1_max, k2_max, k2_size;
+    int G1_min, G2_min, G1_size;
+    int G1_max, G2_max, G2_size;
+
+    int k_minus_kprime_1;
+    int k_minus_kprime_2;
+    int G_minus_Gprime_1;
+    int G_minus_Gprime_2;
+
+
+    for(int spin1=0;spin1<2;spin1++){
+    for(int spin2=0;spin2<2;spin2++){
+    for(int layer1=0;layer1<Parameters_.max_layer_ind;layer1++){
+    for(int layer2=0;layer2<Parameters_.max_layer_ind;layer2++){
+    for(int kprime1_ind=0;kprime1_ind<2*l1_-1;kprime1_ind++){
+    for(int kprime2_ind=0;kprime2_ind<2*l2_-1;kprime2_ind++){
+    for(int Gprime1_ind=0;Gprime1_ind<2*G_grid_L1-1;Gprime1_ind++){
+    for(int Gprime2_ind=0;Gprime2_ind<2*G_grid_L2-1;Gprime2_ind++){
+
+    Omat[spin1][spin2][layer1][layer2][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind]=0.0;
+
+
+    kprime1_ = kprime1_ind - (l1_-1);
+    kprime2_ = kprime2_ind - (l2_-1);
+    Gprime1_ = Gprime1_ind - (G_grid_L1-1);
+    Gprime2_ = Gprime2_ind - (G_grid_L2-1);
+
+    if(kprime1_<0){k1_min=0;k1_max=(l1_-1)-abs(kprime1_);}
+    else{k1_min=kprime1_;k1_max=(l1_-1);}
+
+    if(kprime2_<0){k2_min=0;k2_max=(l2_-1)-abs(kprime2_);}
+    else{k2_min=kprime2_;k2_max=(l2_-1);}
+
+    if(Gprime1_<0){G1_min=0;G1_max=(G_grid_L1-1)-abs(Gprime1_);}
+    else{G1_min=Gprime1_;G1_max=(G_grid_L1-1);}
+
+    if(Gprime2_<0){G2_min=0;G2_max=(G_grid_L2-1)-abs(Gprime2_);}
+    else{G2_min=Gprime2_;G2_max=(G_grid_L2-1);}
+
+    k1_size = k1_max - k1_min +1;
+    k2_size = k2_max - k2_min +1;
+    G1_size = G1_max - G1_min +1;
+    G2_size = G2_max - G2_min +1;
+
+
+    for(int k1_val=k1_min;k1_val<=k1_max;k1_val++){
+        for(int k2_val=k2_min;k2_val<=k2_max;k2_val++){
+        k_minus_kprime_1 = k1_val - kprime1_;
+        k_minus_kprime_2 = k2_val - kprime2_;
+
+        assert(k_minus_kprime_1>=0 && k_minus_kprime_1<l1_);
+        assert(k_minus_kprime_2>=0 && k_minus_kprime_2<l2_);
+
+        int k_row = Coordinates_.Ncell(k1_val,k2_val);
+        int k_col = Coordinates_.Ncell(k_minus_kprime_1, k_minus_kprime_2);
+
+        bool allow=(Inverse_kSublattice_mapping[k_row].first==Inverse_kSublattice_mapping[k_col].first);
+        int kSL_ind = Inverse_kSublattice_mapping[k_row].first;
+        int k_row_ind = Inverse_kSublattice_mapping[k_row].second;
+        int k_col_ind = Inverse_kSublattice_mapping[k_col].second;
+
+        if(allow){
+            for(int G1_val=G1_min;G1_val<=G1_max;G1_val++){
+                for(int G2_val=G2_min;G2_val<=G2_max;G2_val++){
+                    G_minus_Gprime_1 = G1_val - Gprime1_;
+                    G_minus_Gprime_2 = G2_val - Gprime2_;
+
+                    assert(G_minus_Gprime_1>=0 && G_minus_Gprime_1<G_grid_L1);
+                    assert(G_minus_Gprime_2>=0 && G_minus_Gprime_2<G_grid_L2);
+
+                    int comp1 = HamiltonianCont_.Coordinates_.Nbasis(G1_val, G2_val, layer1);
+                    int comp2 = HamiltonianCont_.Coordinates_.Nbasis(G_minus_Gprime_1, G_minus_Gprime_2, layer2);
+
+                    for(int band1=0;band1<Nbands;band1++){
+                        for(int band2=0;band2<Nbands;band2++){
+
+                     int row_val = k_row_ind +
+                                      k_sublattices[kSL_ind].size()*band1 +
+                                      k_sublattices[kSL_ind].size()*Nbands*spin1;
+                     int col_val = k_col_ind +
+                                      k_sublattices[kSL_ind].size()*band2 +
+                                      k_sublattices[kSL_ind].size()*Nbands*spin2;
+
+        Omat[spin1][spin2][layer1][layer2][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind]+=
+                    (conj(BlochStates[spin1][band1][k_row][comp1])*BlochStates[spin2][band2][k_col][comp2]*
+                    OParams[kSL_ind](row_val,col_val));
+
+
+                        }
+                    }
+                }
+            }
+        }//bool allow
+        }
+    }
+
+
+    }}}}}}}}
+
+
+
+    complex<double> density_, Sz_, Sx_, Sy_;
+
+    for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
+    string filename_new = "layer_"+to_string(layer)+"_"+filename;
+    ofstream fileout(filename_new.c_str());
+    fileout<<"# m1  m2  rx  ry   density   sz  sx  sy"<<endl;
+
+    for(int m1=m1_min;m1<=m1_max;m1++){
+    for(int m2=m2_min;m2<=m2_max;m2++){
+    if(m1%M1==0  && m2%M2==0){
+
+    rx = (  ((m1*1.0)/(M1*1.0)) + ((m2*1.0)/(M2*1.0)) )*sqrt(3.0)*0.5;
+    ry = (  -((m1*1.0)/(M1*1.0)) + ((m2*1.0)/(M2*1.0)) )*0.5;
+
+    density_ =0.0;
+    Sz_ =0.0;
+    Sx_=0.0;
+    Sy_=0.0;
+
+    for(int kprime1_ind=0;kprime1_ind<2*l1_-1;kprime1_ind++){
+    for(int kprime2_ind=0;kprime2_ind<2*l2_-1;kprime2_ind++){
+    for(int Gprime1_ind=0;Gprime1_ind<2*G_grid_L1-1;Gprime1_ind++){
+    for(int Gprime2_ind=0;Gprime2_ind<2*G_grid_L2-1;Gprime2_ind++){
+
+
+    kprime1_ = kprime1_ind - (l1_-1);
+    kprime2_ = kprime2_ind - (l2_-1);
+    Gprime1_ = Gprime1_ind - (G_grid_L1-1);
+    Gprime2_ = Gprime2_ind - (G_grid_L2-1);
+
+    density_ += (1.0/Area)*(
+                exp(iota_complex*2.0*PI*(  (m1*(kprime1_)*1.0)/(M1*l1_*1.0)   +  (m2*(kprime2_)*1.0)/(M2*l2_*1.0)  ))
+                *
+                exp(iota_complex*2.0*PI*(  (m1*(Gprime1_)*1.0)/(M1*1.0)   +  (m2*(Gprime2_)*1.0)/(M2*1.0)  ))
+                *
+                (Omat[0][0][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind] +
+                Omat[1][1][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind])
+                );
+
+    Sz_ += (0.5/Area)*(
+                exp(iota_complex*2.0*PI*(  (m1*(kprime1_)*1.0)/(M1*l1_*1.0)   +  (m2*(kprime2_)*1.0)/(M2*l2_*1.0)  ))
+                *
+                exp(iota_complex*2.0*PI*(  (m1*(Gprime1_)*1.0)/(M1*1.0)   +  (m2*(Gprime2_)*1.0)/(M2*1.0)  ))
+                *
+                (Omat[0][0][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind] -
+                Omat[1][1][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind])
+                );
+
+    Sx_ += (0.5/Area)*(
+                exp(iota_complex*2.0*PI*(  (m1*(kprime1_)*1.0)/(M1*l1_*1.0)   +  (m2*(kprime2_)*1.0)/(M2*l2_*1.0)  ))
+                *
+                exp(iota_complex*2.0*PI*(  (m1*(Gprime1_)*1.0)/(M1*1.0)   +  (m2*(Gprime2_)*1.0)/(M2*1.0)  ))
+                *
+                (Omat[0][1][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind] +
+                Omat[1][0][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind])
+                );
+    Sy_ += ((-0.5*iota_complex)/Area)*(
+                exp(iota_complex*2.0*PI*(  (m1*(kprime1_)*1.0)/(M1*l1_*1.0)   +  (m2*(kprime2_)*1.0)/(M2*l2_*1.0)  ))
+                *
+                exp(iota_complex*2.0*PI*(  (m1*(Gprime1_)*1.0)/(M1*1.0)   +  (m2*(Gprime2_)*1.0)/(M2*1.0)  ))
+                *
+                (Omat[0][1][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind] -
+                Omat[1][0][layer][layer][kprime1_ind][kprime2_ind][Gprime1_ind][Gprime2_ind])
+                );
+
+    }}}}
+
+    fileout<<m1<<"  "<<m2<<"  "<<rx<<"  "<<ry<<"  "<<density_.real()<<"  "<<Sz_.real()<<"  "<<Sx_.real()<<"  "<<Sy_.real()<<
+    "  "<<density_.imag()<<"  "<<Sz_.imag()<<"  "<<Sx_.imag()<<"  "<<Sy_.imag()<<endl;
+
+    }
+
+    }
+    if(m1%M1==0){
+    fileout<<endl;}
+    }}
+}
 
 void Hamiltonian::Calculate_RealSpace_OParams_important_positions_new(string filename){
 
@@ -448,8 +671,12 @@ void Hamiltonian::Calculate_RealSpace_OParams_important_positions_new(string fil
     }}}}
 
 
-    fileout<<m1/M1<<"  "<<m2/M2<<"  "<<m1<<"  "<<m2<<"  "<<rx<<"  "<<ry<<"  "<<Area*density_.real()<<"  "<<Area*Sz_.real()<<"  "<<Area*Sx_.real()<<"  "<<Area*Sy_.real()<<
-    "  "<<Area*density_.imag()<<"  "<<Area*Sz_.imag()<<"  "<<Area*Sx_.imag()<<"  "<<Area*Sy_.imag()<<endl;
+    //fileout<<m1/M1<<"  "<<m2/M2<<"  "<<m1<<"  "<<m2<<"  "<<rx<<"  "<<ry<<"  "<<Area*density_.real()<<"  "<<Area*Sz_.real()<<"  "<<Area*Sx_.real()<<"  "<<Area*Sy_.real()<<
+   // "  "<<Area*density_.imag()<<"  "<<Area*Sz_.imag()<<"  "<<Area*Sx_.imag()<<"  "<<Area*Sy_.imag()<<endl;
+
+    fileout<<m1/M1<<"  "<<m2/M2<<"  "<<m1<<"  "<<m2<<"  "<<rx<<"  "<<ry<<"  "<<density_.real()<<"  "<<Sz_.real()<<"  "<<Sx_.real()<<"  "<<Sy_.real()<<
+    "  "<<density_.imag()<<"  "<<Sz_.imag()<<"  "<<Sx_.imag()<<"  "<<Sy_.imag()<<endl;
+
 
     }//if
     }//m2
@@ -970,6 +1197,112 @@ void Hamiltonian::Calculate_RealSpace_OParams_new3(string filename){
 
     fileout<<endl;
     }}
+}
+
+
+void Hamiltonian::Create_PMat(){
+
+ Pmat.resize(2*l1_-1); //k1_
+ for(int k1_ind=0;k1_ind<(2*l1_-1);k1_ind++){
+     Pmat[k1_ind].resize(2*l2_-1); //k2_
+     for(int k2_ind=0;k2_ind<(2*l2_-1);k2_ind++){
+     Pmat[k1_ind][k2_ind].resize(2*G_grid_L1-1); //g1_;
+     for(int g1_ind=0;g1_ind<(2*G_grid_L1-1);g1_ind++){
+     Pmat[k1_ind][k2_ind][g1_ind].resize(2*G_grid_L2-1); //g2;
+     for(int g2_ind=0;g2_ind<(2*G_grid_L2-1);g2_ind++){
+     Pmat[k1_ind][k2_ind][g1_ind][g2_ind].resize(2);//spin1
+     for(int s1=0;s1<2;s1++){
+     Pmat[k1_ind][k2_ind][g1_ind][g2_ind][s1].resize(2); //spin2
+     for(int s2=0;s2<2;s2++){
+     Pmat[k1_ind][k2_ind][g1_ind][g2_ind][s1][s2].resize(Parameters_.max_layer_ind);//layer1
+    for(int l1=0;l1<Parameters_.max_layer_ind;l1++){
+    Pmat[k1_ind][k2_ind][g1_ind][g2_ind][s1][s2][l1].resize(Parameters_.max_layer_ind);//layer2
+    for(int l2=0;l2<Parameters_.max_layer_ind;l2++){
+    Pmat[k1_ind][k2_ind][g1_ind][g2_ind][s1][s2][l1][l2]=0.0;
+    }}}}}}}}
+
+
+
+ ifstream file_local_OP(Parameters_.OP_input_file.c_str());
+
+ string linetemp;
+ getline(file_local_OP, linetemp);
+
+
+ int M1, M2; //no. of slices of one moire unit cell
+ int l1_inp, l2_inp;
+ M1=Parameters_.M1_inp;M2=Parameters_.M2_inp;
+ l1_inp =Parameters_.l1_inp;l2_inp=Parameters_.l2_inp;
+
+
+ double m1_, m2_, rx_, ry_, den_, sz_, sx_, sy_;
+ while(getline(file_local_OP,linetemp)){
+ stringstream line_stream(linetemp);
+ line_stream >> m1_>>m2_>>rx_>>ry_>>den_>>sz_>>sx_>>sy_;
+
+
+ int tau1_, tau2_, layer1_, layer2_;
+ layer1_=0;
+ layer2_=0;
+ int k1_ind, k2_ind, g1_l1_ind, g2_l2_ind;
+ int k1_t1_ind, k2_t2_ind;
+
+ int k1_val, k2_val, g1_val, g2_val;
+ for(int k_1_ind=0;k_1_ind<(2*l1_-1);k_1_ind++){
+        //k1_ind =  Coordinates_.Ncell(k1_1,k1_2);
+            k1_val = k_1_ind - (l1_-1);
+         for(int k_2_ind=0;k_2_ind<(2*l2_-1);k_2_ind++){
+           //k2_ind =  Coordinates_.Ncell(k2_1,k2_2);
+            k2_val = k_2_ind - (l2_-1);
+            for(int g_1_ind=0;g_1_ind<(2*G_grid_L1-1);g_1_ind++){
+                   // g1_l1_ind=HamiltonianCont_.Coordinates_.Nbasis(g1_1, g1_2, layer1_);
+            g1_val = g_1_ind - (G_grid_L1-1);
+                for(int g_2_ind=0;g_2_ind<(2*G_grid_L2-1);g_2_ind++){
+                    //g2_l2_ind=HamiltonianCont_.Coordinates_.Nbasis(g2_1, g2_2, layer2_);
+            g2_val = g_2_ind - (G_grid_L2-1);
+
+
+            tau1_=0; tau2_=0;
+            Pmat[k_1_ind][k_2_ind][g_1_ind][g_2_ind][tau1_][tau2_][layer1_][layer2_] += (1.0*(1.0/1.0))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(k1_val))/(M1*l1_inp*1.0)) + ((m2_*(k2_val))/(M2*l2_inp*1.0)) ))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(g1_val))/(M1*1.0)) + ((m2_*(g2_val))/(M2*1.0)) ))*
+                                    (sz_ + 0.5*(den_));
+
+            tau1_=1; tau2_=1;
+            Pmat[k_1_ind][k_2_ind][g_1_ind][g_2_ind][tau1_][tau2_][layer1_][layer2_] += (1.0*(1.0/1.0))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(k1_val))/(M1*l1_inp*1.0)) + ((m2_*(k2_val))/(M2*l2_inp*1.0)) ))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(g1_val))/(M1*1.0)) + ((m2_*(g2_val))/(M2*1.0)) ))*
+                                    (-1.0*sz_ + 0.5*(den_));
+
+
+            tau1_=0; tau2_=1;
+            Pmat[k_1_ind][k_2_ind][g_1_ind][g_2_ind][tau1_][tau2_][layer1_][layer2_] += (1.0*(1.0/1.0))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(k1_val))/(M1*l1_inp*1.0)) + ((m2_*(k2_val))/(M2*l2_inp*1.0)) ))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(g1_val))/(M1*1.0)) + ((m2_*(g2_val))/(M2*1.0)) ))*
+                                    (sx_ + iota_complex*sy_);
+
+            tau1_=1; tau2_=0;
+            Pmat[k_1_ind][k_2_ind][g_1_ind][g_2_ind][tau1_][tau2_][layer1_][layer2_] += (1.0*(1.0/1.0))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(k1_val))/(M1*l1_inp*1.0)) + ((m2_*(k2_val))/(M2*l2_inp*1.0)) ))*
+                                    exp(iota_complex*2.0*PI*(((m1_*(g1_val))/(M1*1.0)) + ((m2_*(g2_val))/(M2*1.0)) ))*
+                                    (sx_ - iota_complex*sy_);
+
+
+
+                        }
+
+                }
+
+             }
+     }
+
+
+ }
+
+
+
+ cout<<"Pmat for using read OP's created"<<endl;
+
 }
 
 
@@ -3494,6 +3827,8 @@ void Hamiltonian::Perform_SVD_complex(Matrix<complex<double>> & A_, Matrix<compl
 void Hamiltonian::Initialize_OParams(){
 
     if(Parameters_.Read_OPs_bool){
+
+        if(Parameters_.OP_Read_Type=="KSpace"){
         string line;
         int kSL_ind_temp, row_val_temp, col_val_temp;
         double OP_real, OP_imag;
@@ -3522,6 +3857,73 @@ void Hamiltonian::Initialize_OParams(){
             OParams[kSL_ind](row_val,col_val) = complex<double>(OP_real, OP_imag);
             }}
         }
+
+        }//KSpaceType
+
+       if(Parameters_.OP_Read_Type=="RealSpace"){
+        Create_PMat();
+
+        int k1_diff, G1_diff, k2_diff, G2_diff ;
+        for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+            OParams[kSL_ind].resize(k_sublattices[kSL_ind].size()*2*Nbands,k_sublattices[kSL_ind].size()*2*Nbands);
+
+            for(int spin=0;spin<2;spin++){
+            for(int k_ind=0;k_ind<k_sublattices[kSL_ind].size();k_ind++){
+            for(int band1=0;band1<Nbands;band1++){
+            int row_val = k_ind +
+                      k_sublattices[kSL_ind].size()*band1 +
+                      k_sublattices[kSL_ind].size()*Nbands*spin;
+            int k_ind_val = k_sublattices[kSL_ind][k_ind];
+            int k_s_ind = k_ind_val + spin*l1_*l2_;
+
+            for(int spin_p=0;spin_p<2;spin_p++){
+            for(int k_ind_p=0;k_ind_p<k_sublattices[kSL_ind].size();k_ind_p++){
+            for(int band2=0;band2<Nbands;band2++){
+            int col_val = k_ind_p +
+                      k_sublattices[kSL_ind].size()*band2 +
+                      k_sublattices[kSL_ind].size()*Nbands*spin_p;
+            int k_ind_p_val = k_sublattices[kSL_ind][k_ind_p];
+            int k_s_p_ind = k_ind_p_val + spin_p*l1_*l2_;
+
+            k1_diff =Coordinates_.indx_cellwise(k_ind_p_val)-Coordinates_.indx_cellwise(k_ind_val);
+            k1_diff = k1_diff + (l1_-1);
+            k2_diff =Coordinates_.indy_cellwise(k_ind_p_val)-Coordinates_.indy_cellwise(k_ind_val);
+            k2_diff = k2_diff + (l2_-1);
+
+            OParams[kSL_ind](row_val,col_val) = 0.0;
+
+            for(int g1_1=0;g1_1<G_grid_L1;g1_1++){
+                for(int g1_2=0;g1_2<G_grid_L2;g1_2++){
+                    for(int layer1=0;layer1<Parameters_.max_layer_ind;layer1++){
+            int g1_l1_ind=HamiltonianCont_.Coordinates_.Nbasis(g1_1, g1_2, layer1);
+
+            for(int g2_1=0;g2_1<G_grid_L1;g2_1++){
+                   for(int g2_2=0;g2_2<G_grid_L2;g2_2++){
+                   for(int layer2=0;layer2<Parameters_.max_layer_ind;layer2++){
+                    int g2_l2_ind=HamiltonianCont_.Coordinates_.Nbasis(g2_1, g2_2, layer2);
+
+           G1_diff = g2_1 - g1_1 + (G_grid_L1-1);
+           G2_diff = g2_2 - g1_2 + (G_grid_L2-1);
+
+           OParams[kSL_ind](row_val,col_val) += BlochStates[spin][band1][k_ind_val][g1_l1_ind]*
+                                                conj(BlochStates[spin_p][band2][k_ind_p_val][g2_l2_ind])*
+                                               Pmat[k1_diff][k2_diff][G1_diff][G2_diff][spin][spin_p][layer1][layer2];
+
+                   }}}
+
+                }}}
+            //BlochStates[spin][n][i1+i2*l1_][comp];
+
+            }}}
+            }}}
+
+        }
+
+
+
+       }
+
+
     }
     else{
 for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
@@ -3724,7 +4126,7 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     string Oparams1_str = "Temp_"+string(temp_char)+"RealSpace_OParams_moiresites.txt";
     string Oparams2_str = "Temp_"+string(temp_char)+"RealSpace_OParams.txt";
 
-    Calculate_RealSpace_OParams_important_positions_new(Oparams1_str);
+    Calculate_RealSpace_OParams_important_positions_new3(Oparams1_str);
     Calculate_RealSpace_OParams_new3(Oparams2_str);
 
     //Here

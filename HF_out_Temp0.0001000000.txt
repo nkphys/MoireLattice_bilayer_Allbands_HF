@@ -1,0 +1,2 @@
+#iter   OP_diff   mu  QuantEnergy.real  .imag  ClassEnergy.real  .imag  Total_n_up    Total_n_dn   Energy_diff
+0   0.195085   2.3291202361e+02   1.8061133627e+03  0.0000000000e+00  -1.2353842533e+03   -2.2997565613e-09   2.4989785743e-01  2.5010214257e-01   5.7072910944e+02
