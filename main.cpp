@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
         Hamiltonian_ContinuumModel Hamiltonian_(Parameters_, Coordinates_);
 
          Hamiltonian_.Saving_NonInteractingSpectrum();
-         Hamiltonian_.NonInteractingSpectrum_AlongPath(Hamiltonian_.Get_k_path(1));
+         Hamiltonian_.NonInteractingSpectrum_AlongPath(Hamiltonian_.Get_k_path(2));
 
          //assert(false);
 

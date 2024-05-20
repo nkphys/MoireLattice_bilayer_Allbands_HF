@@ -7,6 +7,7 @@ class Parameters{
 public:
 
     double V_param_top,V_param_bottom, Psi_param, omega_param, a_moire;
+    double V2_param_top , V2_param_bottom, omega2_param;
     double TwistTheta, a_monolayer, MStar_top, MStar_bottom, eps_DE;
     int Grid_moireRL_L1, Grid_moireRL_L2;
     int moire_BZ_L1, moire_BZ_L2;
@@ -86,8 +87,13 @@ void Parameters::Initialize(string inputfile_){
     MagField_ZeemanSplitting=matchstring(inputfile_,"MagField_ZeemanSplitting");
     V_param_top = matchstring(inputfile_,"V_param_top_in_meV");
     V_param_bottom = matchstring(inputfile_,"V_param_bottom_in_meV");
+
+    V2_param_top = matchstring(inputfile_,"V2_param_top_in_meV");
+    V2_param_bottom = matchstring(inputfile_,"V2_param_bottom_in_meV");
+
     Psi_param = matchstring(inputfile_,"Psi_param_in_radians");
     omega_param = matchstring(inputfile_,"omega_param_in_meV");
+    omega2_param = matchstring(inputfile_,"omega2_param_in_meV");
     Grid_moireRL_L1 = int(matchstring(inputfile_,"Grid_moireReciprocalLattice_L1"));
     Grid_moireRL_L2 = int(matchstring(inputfile_,"Grid_moireReciprocalLattice_L2"));
     moire_BZ_L1 = int(matchstring(inputfile_,"moire_BZ_L1"));

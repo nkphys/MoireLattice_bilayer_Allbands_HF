@@ -2,48 +2,67 @@ MaterialName=MoTe2Homobilayer
 Layer_Potential_bottom_Vz_in_meV=0.0
 Layer_Potential_top_Vz_in_meV=-0.0
 
+
 #8.0
-V_param_bottom_in_meV=8.0
-V_param_top_in_meV=8.0
+V_param_bottom_in_meV=20.51
+V_param_top_in_meV=20.51
 
-Psi_param_in_radians=-1.56381368
 
-omega_param_in_meV=-8.5
+V2_param_bottom_in_meV=-9.08
+V2_param_top_in_meV=-9.08
+
+
+Psi_param_in_radians=-1.0732029
+
+#89.6=1.56381368
+#56.49=0.98593649
+
+
+omega_param_in_meV=-7.01
+omega2_param_in_meV=11.08
 #-8.5
 
-Grid_moireReciprocalLattice_L1=9
-Grid_moireReciprocalLattice_L2=9
+Grid_moireReciprocalLattice_L1=12
+Grid_moireReciprocalLattice_L2=12
 a_monolayer_in_angstorm=3.472
-Twist_Theta_in_radians=0.06117
+Twist_Theta_in_radians=0.0366519
 
-#3.5=0.06117
+#3.5=0.06108
 #2.5=0.043633
 #1.5=0.0261799
 #4.5=0.07853975
 
 MStar_top_in_RestMass=0.62
 MStar_bottom_in_RestMass=0.62
-moire_BZ_L1=3
-moire_BZ_L2=3
+moire_BZ_L1=18
+moire_BZ_L2=18
 
 
 MagField_ZeemanSplitting=0.00
 
-MagneticUnitCell_NMat_row1=1 1
-MagneticUnitCell_NMat_row2=-1 2
+MagneticUnitCell_NMat_row1=1 0
+MagneticUnitCell_NMat_row2=0 1
 
 No_of_bands_used_for_HartreeFock=3
 eps_DE=40.0
 distance_to_gate_in_angstorm=200
 
 Read_OrderParams=false
+OrderParamsReadingType=RealSpace
+OrderParamsReadingDetails_l1_l2_M1_M2=4 4 10 10
 OrderParamsInputFile=OP_Final.txt
 OrderParamsOutputFile=OP_Final2.txt
 
 
-holedensity_per_moire_unit_cell=1.0
-Temperature_in_Kelvin=0.000001
-HF_convergence_error=0.000000001
+
+
+
+holedensity_per_moire_unit_cell=3.0
+
+Cooling=1
+Temperature_in_Kelvin=1 0.0001
+
+HF_convergence_error=0.000001
 Convergence_technique=AndersonMixing
 #AndersonMixing
 #SimpleMixing
@@ -51,5 +70,5 @@ SimpleMixing_alpha=0.5
 #alpha*new  + (1-alpha)*old
 
 Anderson_mixing_m=20
-Max_HFIterations=20000
+Max_HFIterations=0
 RandomSeed=1

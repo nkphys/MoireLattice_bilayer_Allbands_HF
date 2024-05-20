@@ -48,7 +48,7 @@ distance_to_gate_in_angstorm=100
 
 Read_OrderParams=true
 OrderParamsReadingType=RealSpace
-OrderParamsReadingDetails_l1_l2_M1_M2=4 4 2 2
+OrderParamsReadingDetails_l1_l2_M1_M2=4 4 10 10
 #KSpace
 OrderParamsInputFile=layer_0_Temp_0.0001000000RealSpace_OParams_2x2_AFM.txt
 #layer_0_Temp_0.0001000000RealSpace_OParams_moiresites_test.txt

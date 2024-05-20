@@ -3061,8 +3061,6 @@ void Hamiltonian::Create_Hamiltonian(int kset_ind){
 
 
     
-
-
     int subspace_;    
     int row_ind, col_ind;
     int q_ind1, q_ind2, k3_ind1, k3_ind2, k1_ind1, k1_ind2, k2_ind1, k2_ind2;
