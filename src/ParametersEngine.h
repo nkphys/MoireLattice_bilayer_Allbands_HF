@@ -50,7 +50,7 @@ public:
     int l1_inp, l2_inp , M1_inp, M2_inp;
     //For Gamma-valley bilayers
     double V1_param, V2_param, V3_param;
-
+    bool Imposing_SzZero;
 
     void Initialize(string inputfile_);
     double matchstring(string file,string match);
@@ -116,6 +116,13 @@ void Parameters::Initialize(string inputfile_){
     Vz_top=matchstring(inputfile_,"Layer_Potential_top_Vz_in_meV");
     Vz_bottom=matchstring(inputfile_,"Layer_Potential_bottom_Vz_in_meV");
 
+    int Imposing_SzZero_int = int(matchstring(inputfile_,"Imposing_SzZero"));
+    if(Imposing_SzZero_int==1){
+     Imposing_SzZero=true;
+    }
+    else{
+        Imposing_SzZero=false;
+    }
     
     Read_OPs_bool=matchstring3(inputfile_, "Read_OrderParams");
     OP_Read_Type=matchstring2(inputfile_, "OrderParamsReadingType");

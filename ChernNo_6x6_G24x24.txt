@@ -1,0 +1,29 @@
+XXXXXXXXXXXXXXX FOR SPIN = 0 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+tilde Chern number [0] = 1        -3.65712e-17
+tilde Chern number [1] = 1        -5.0968e-17
+tilde Chern number [2] = 1        -3.31267e-16
+tilde Chern number [3] = 8.29277e-13        -2.60648e-16
+tilde Chern number [4] = -1        2.41498e-16
+tilde Chern number [5] = -2        -7.87651e-17
+tilde Chern number [6] = -1        -2.37226e-16
+tilde Chern number [7] = 3        -1.40415e-16
+tilde Chern number [8] = 1        3.58585e-16
+tilde Chern number [9] = 2.42864e-12        -2.18458e-16
+tilde Chern number [10] = 2        -1.76966e-16
+tilde Chern number [11] = -1        1.60004e-17
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXX FOR SPIN = 1 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+tilde Chern number [0] = -1        -7.24564e-17
+tilde Chern number [1] = -1        8.31733e-18
+tilde Chern number [2] = -1        4.86257e-17
+tilde Chern number [3] = 2.06291e-12        1.26369e-16
+tilde Chern number [4] = 1        -2.0922e-17
+tilde Chern number [5] = 2        7.59156e-17
+tilde Chern number [6] = 1        7.68951e-17
+tilde Chern number [7] = -3        1.34657e-16
+tilde Chern number [8] = -1        -2.98112e-17
+tilde Chern number [9] = 1.31533e-11        -1.01862e-16
+tilde Chern number [10] = -2        -3.47905e-16
+tilde Chern number [11] = 1        2.74905e-16
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+

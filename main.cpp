@@ -34,11 +34,6 @@ int main(int argc, char *argv[]) {
 
 
 
-
-
-
-
-
     if(ex_string=="MoireBands" || true){
 
 
@@ -186,8 +181,7 @@ int main(int argc, char *argv[]) {
         Hamiltonian_HF_.RunSelfConsistency();
         }
 
-
-
+        //assert(false);
 
         k_path_choosen=k_path;
         

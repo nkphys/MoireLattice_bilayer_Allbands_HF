@@ -97,7 +97,7 @@ public:
     void Calculate_ChernNumbers_HFBands();
     void Calculate_layer_resolved_densities();
     void Write_ordered_spectrum(string filename);
-
+    void Imposing_ZeroSz();
     void Create_PMat();
     //---------------------------------------
    
@@ -3720,6 +3720,86 @@ void Hamiltonian::Update_OrderParameters_AndersonMixing(int iter){
 }
 
 
+void Hamiltonian::Imposing_ZeroSz(){
+
+
+int Spin_up=0;
+int Spin_dn=1;
+int row_val_up, row_val_dn;
+int col_val_up, col_val_dn;
+complex<double> val_avg;
+for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+
+//OParams_new[kSL_ind].resize(k_sublattices[kSL_ind].size()*Nbands*2,k_sublattices[kSL_ind].size()*Nbands*2);
+
+for(int k_ind=0;k_ind<k_sublattices[kSL_ind].size();k_ind++){
+for(int band1=0;band1<Nbands;band1++){
+
+row_val_up = k_ind +
+          k_sublattices[kSL_ind].size()*band1 +
+          k_sublattices[kSL_ind].size()*Nbands*Spin_up;
+
+row_val_dn = k_ind +
+          k_sublattices[kSL_ind].size()*band1 +
+          k_sublattices[kSL_ind].size()*Nbands*Spin_dn;
+
+
+val_avg = 0.5*(OParams[kSL_ind](row_val_up, row_val_up) + OParams[kSL_ind](row_val_dn, row_val_dn));
+
+OParams[kSL_ind](row_val_up, row_val_up)=val_avg;
+OParams[kSL_ind](row_val_dn, row_val_dn)=val_avg;
+
+}
+
+}}
+
+
+
+
+
+complex<double> val_Sp, val_Sm;
+
+
+for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+
+for(int k_ind=0;k_ind<k_sublattices[kSL_ind].size();k_ind++){
+for(int band1=0;band1<Nbands;band1++){
+
+row_val_up = k_ind +
+          k_sublattices[kSL_ind].size()*band1 +
+          k_sublattices[kSL_ind].size()*Nbands*Spin_up;
+
+row_val_dn = k_ind +
+          k_sublattices[kSL_ind].size()*band1 +
+          k_sublattices[kSL_ind].size()*Nbands*Spin_dn;
+
+for(int k_ind_p=0;k_ind_p<k_sublattices[kSL_ind].size();k_ind_p++){
+for(int band2=0;band2<Nbands;band2++){
+col_val_up = k_ind_p +
+          k_sublattices[kSL_ind].size()*band2 +
+          k_sublattices[kSL_ind].size()*Nbands*Spin_up;
+col_val_dn = k_ind_p +
+          k_sublattices[kSL_ind].size()*band2 +
+          k_sublattices[kSL_ind].size()*Nbands*Spin_dn;
+
+
+val_Sp = complex<double> (0.5*OParams[kSL_ind](row_val_dn, col_val_up).real() + 0.5*OParams[kSL_ind](row_val_up, col_val_dn).real(), 0.0);
+val_Sm = complex<double> (0.5*OParams[kSL_ind](row_val_dn, col_val_up).real() + 0.5*OParams[kSL_ind](row_val_up, col_val_dn).real(), 0.0);
+
+OParams[kSL_ind](row_val_up, col_val_dn) = 0;//val_Sp;
+OParams[kSL_ind](col_val_dn, row_val_up) = 0;//conj(val_Sp);
+
+OParams[kSL_ind](row_val_dn, col_val_up) = 0;//val_Sm;
+OParams[kSL_ind](col_val_up, row_val_dn) = 0;//conj(val_Sm);
+}}}}}
+
+
+
+
+
+
+}
+
 void Hamiltonian::Perform_SVD(Matrix<double> & A_, Matrix<double> & VT_, Matrix<double> & U_, vector<double> & Sigma_){
 
 
@@ -3943,6 +4023,12 @@ OParams[kSL_ind](row_val,col_val) = complex<double>(Myrandom(),0.0);
 
 
 
+    if(Parameters_.Imposing_SzZero){
+        Imposing_ZeroSz();
+    }
+
+
+
     string file_OP="Initial_Oparams.txt";
     ofstream file_OP_out(file_OP.c_str());
     file_OP_out<<"#k_sublattice  row_val   col_val  value.real  value.imag"<<endl;
@@ -4065,6 +4151,10 @@ void Hamiltonian::RunSelfConsistency(){
     else{
     assert(Convergence_technique=="AndersonMixing");
     Update_OrderParameters_AndersonMixing(iter);
+    }
+
+    if(Parameters_.Imposing_SzZero){
+      Imposing_ZeroSz();
     }
 
     Update_Hartree_Coefficients();
