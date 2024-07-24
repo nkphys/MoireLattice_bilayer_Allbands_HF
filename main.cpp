@@ -148,8 +148,10 @@ int main(int argc, char *argv[]) {
         Coordinates_ContinuumModel Coordinates_(Parameters_.Grid_moireRL_L1, Parameters_.Grid_moireRL_L2, Coord_norbs);
         Hamiltonian_ContinuumModel Hamiltonian_(Parameters_, Coordinates_);
 
+         Hamiltonian_.Create_PBZ_map();
          Hamiltonian_.Saving_NonInteractingSpectrum();
-         Hamiltonian_.NonInteractingSpectrum_AlongPath(Hamiltonian_.Get_k_path(2));
+         Hamiltonian_.Saving_NonInteractingSpectrum_PrimBZ();
+         Hamiltonian_.NonInteractingSpectrum_AlongPath(Hamiltonian_.Get_k_path(0));
 
          //assert(false);
 
@@ -176,7 +178,7 @@ int main(int argc, char *argv[]) {
         //  Hamiltonian_HF_.PrintFormFactors(1, 0, 0);
         //  Hamiltonian_HF_.PrintFormFactors(0, 0, 1);
          // Hamiltonian_HF_.Print_Interaction_value2(0,0);
-         // Hamiltonian_HF_.Print_Interaction_value2(2,3);
+        // Hamiltonian_HF_.Print_Interaction_value3();
 
         Hamiltonian_HF_.RunSelfConsistency();
         }

@@ -17,6 +17,7 @@
 \usepackage{calc}
 \usepackage{graphicx}
 \usepackage{color}
+\usepackage[utf8x]{inputenc}
 \makeatletter
 % Select an appropriate default driver (from TeXLive graphics.cfg)
 \begingroup
@@ -137,23 +138,25 @@
     \fi%
     \setlength{\fboxrule}{0.5pt}%
     \setlength{\fboxsep}{1pt}%
+    \definecolor{tbcol}{rgb}{1,1,1}%
 \begin{picture}(7200.00,3024.00)%
     \gplgaddtomacro\gplbacktext{%
       \csname LTb\endcsname%%
-      \put(462,440){\makebox(0,0)[r]{\strut{}$-8$}}%
-      \put(462,778){\makebox(0,0)[r]{\strut{}$-6$}}%
-      \put(462,1115){\makebox(0,0)[r]{\strut{}$-4$}}%
-      \put(462,1453){\makebox(0,0)[r]{\strut{}$-2$}}%
-      \put(462,1790){\makebox(0,0)[r]{\strut{}$0$}}%
-      \put(462,2128){\makebox(0,0)[r]{\strut{}$2$}}%
+      \put(462,440){\makebox(0,0)[r]{\strut{}$-2$}}%
+      \put(462,778){\makebox(0,0)[r]{\strut{}$-1$}}%
+      \put(462,1115){\makebox(0,0)[r]{\strut{}$0$}}%
+      \put(462,1453){\makebox(0,0)[r]{\strut{}$1$}}%
+      \put(462,1790){\makebox(0,0)[r]{\strut{}$2$}}%
+      \put(462,2128){\makebox(0,0)[r]{\strut{}$3$}}%
       \put(462,2465){\makebox(0,0)[r]{\strut{}$4$}}%
-      \put(462,2803){\makebox(0,0)[r]{\strut{}$6$}}%
+      \put(462,2803){\makebox(0,0)[r]{\strut{}$5$}}%
       \put(594,220){\makebox(0,0){\strut{}$0$}}%
-      \put(1630,220){\makebox(0,0){\strut{}$5$}}%
-      \put(2665,220){\makebox(0,0){\strut{}$10$}}%
-      \put(3701,220){\makebox(0,0){\strut{}$15$}}%
-      \put(4736,220){\makebox(0,0){\strut{}$20$}}%
-      \put(5772,220){\makebox(0,0){\strut{}$25$}}%
+      \put(1457,220){\makebox(0,0){\strut{}$2$}}%
+      \put(2320,220){\makebox(0,0){\strut{}$4$}}%
+      \put(3183,220){\makebox(0,0){\strut{}$6$}}%
+      \put(4046,220){\makebox(0,0){\strut{}$8$}}%
+      \put(4909,220){\makebox(0,0){\strut{}$10$}}%
+      \put(5772,220){\makebox(0,0){\strut{}$12$}}%
     }%
     \gplgaddtomacro\gplfronttext{%
       \csname LTb\endcsname%%
@@ -164,7 +167,7 @@
       \put(6291,2803){\makebox(0,0)[l]{\strut{}$0.1$}}%
     }%
     \gplbacktext
-    \put(0,0){\includegraphics{plot_TL-inc}}%
+    \put(0,0){\includegraphics[width={360.00bp},height={151.20bp}]{plot_TL-inc}}%
     \gplfronttext
   \end{picture}%
 \endgroup

@@ -35,8 +35,9 @@ set output 'plot_TL.tex'
 
 #ratio=(yrange_val_max-yrange_val_min+4.7)/(xrange_val_max-xrange_val_min)
 
-#ratio=1
 ratio=0.6
+#ratio=2.0
+
 set size 1,ratio
 set style arrow 1 head filled size screen 0.0,20 lw 10 lc pal 
 set style arrow 3 head filled size screen 0.1,1,1  lw 1 lc pal 
@@ -50,15 +51,21 @@ set style arrow 3 head filled size screen 0.1,1,1  lw 1 lc pal
 scale = 0.7 
 #p 'MySkyrmion.txt' u (( $1 + (0.5*$2)  )-0.4*$4):(( sqrt(3.0)*0.5*($2) )-0.4*$5):(($4)*scale):(($5)*scale):(($3)) w vec arrowstyle 3 notitle
 
-#set xr [0:5]
-#set yr [-3:3]
+#set yr [-0.7:0.7]
+#set xr [0:2]
 unset cbr
 set cbr [-0.1:0.1]
-set palette define (0 "red", 1.0 "blue")
+set palette define (0 "red", 0.3 "red", 1.0 "blue")
 #p "RealSpace_OParams.txt" u ($3):($4):($8*10000):($7*10000):(sqrt($8*$8 + $7*$7 +$6*$6)) w vec arrowstyle 3 notitle
-p "TEST/layer_0_Temp_0.0001000000RealSpace_OParams.txt" u ($3):($4):($6*1200):($8*1200):(sqrt($8*$8 + $7*$7 + $6*$6)*1200) w vec arrowstyle 3 notitle
+#p "~/Desktop/Data_ACF/MoTe2Bilayer_HF_Runs/Filling1.0/TwistAngle2.5/N_MoireCells6x6/MagneticUC_N00_1_N01_0_N10_0_N11_1/N_HF_BANDS3/DistanceToGate200/epsilon4.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):($6*1200):($8*1200):(sqrt($8*$8 + $7*$7 + $6*$6)*1200) w vec arrowstyle 3 notitle
+#layer_0_RealSpace_OParams_moiresites.txt
 
-#p "TEST/layer_0_Temp_0.0001000000RealSpace_OParams.txt" u ($3):($4):((($5))*1000) w p pt 7 ps var lc "black" notitle
-#p "layer_0_RealSpace_OParams_moiresites.txt" u ($5 - 0.5*$8*0.2):($6 - 0.5*$10*0.2):($8*0.2):($10*0.2):(sqrt($8*$8 + $9*$9 +$10*$10)) w vec arrowstyle 3 notitle
+p "layer_0_Temp_0.0001000000RealSpace_OParams.txt" u ($3):($4):($6*300):($7*300):(($8)*2000) w vec arrowstyle 3 notitle
+
+#p "CHECK_OLDCODE/MoireLattice_bilayer_Allbands_HF/layer_1_Temp_0.0001000000RealSpace_OParams.txt" u ($3):($4):($7*700):($8*700):(($8)*2000) w vec arrowstyle 3 notitle
+#
+
+#p "layer_0_RealSpace_OParams_moiresites.txt" u ($5 - 0.5*$8*0.2):($6 - 0.5*$10*0.2):($9*4000.2):($10*4000.2):(sqrt($8*$8 + $9*$9 +$10*$10)) w vec arrowstyle 3 notitle
+
 #p "RealSpace_OParams_moiresites.txt" u ($5 - (0.0*$10) ):($6 -  ($9*0.0) ):($9):($10):($8) w vec arrowstyle 3 notitle
 #p "RealSpace_OParams.txt" u ($3):($4):($6*8000*1):($7*8000*1):($5) w vec arrowstyle 3 notitle 

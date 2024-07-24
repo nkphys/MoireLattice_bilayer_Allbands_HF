@@ -1,5 +1,7 @@
 #include <cassert>
+#include <fstream>
 
+using namespace std;
 #ifndef Matrix_class
 #define Matrix_class
 
@@ -28,6 +30,7 @@ public:
     const T& operator()(int i,int j) const;
     T& operator()(int i, int j);
     void print();
+    void print_in_file(string filename, int precision);
     void resize(int newrow, int newcol);
     int n_row();
     int n_col();
@@ -101,6 +104,20 @@ void Matrix<T>::print(){
     return;
 } // ----------
 
+
+template<class T>
+void Matrix<T>::print_in_file(string filename, int precision){
+    ofstream fileout(filename.c_str());
+
+    fileout<<"shape:= ("<<nrow_<<","<<ncol_<<")"<<std::endl;
+    for(int i=0; i<nrow_; i++) {
+        for(int j=0; j<ncol_; j++) {
+            fileout << std::setprecision(precision)<<data_[i+j*nrow_] << " ";
+        }
+        fileout << std::endl;
+    }
+    return;
+} // ----------
 
 #endif
 

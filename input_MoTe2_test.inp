@@ -3,30 +3,34 @@ Layer_Potential_bottom_Vz_in_meV=0.0
 Layer_Potential_top_Vz_in_meV=-0.0
 
 
-#8.0
-V_param_bottom_in_meV=8.0
-V_param_top_in_meV=8.0
+V_param_bottom_in_meV=20.51
+#20.51
+V_param_top_in_meV=20.51
+#20.51
 
 
-V2_param_bottom_in_meV=0
-V2_param_top_in_meV=0
+V2_param_bottom_in_meV=-9.08
+#-9.08
+V2_param_top_in_meV=-9.08
+#-9.08
 
 
-Psi_param_in_radians=-1.56381368
+Psi_param_in_radians=-1.0732029
 
 #89.6=1.56381368
 #56.49=0.98593649
 
 
-omega_param_in_meV=-8.5
-omega2_param_in_meV=0
+omega_param_in_meV=-7.01
+#-7.01
+omega2_param_in_meV=11.08
+#11.08
 #-8.5
 
 Grid_moireReciprocalLattice_L1=12
 Grid_moireReciprocalLattice_L2=12
 a_monolayer_in_angstorm=3.472
-
-Twist_Theta_in_radians=0.0261799
+Twist_Theta_in_radians=0.0366519
 
 #3.5=0.06108
 #2.5=0.043633
@@ -39,14 +43,14 @@ moire_BZ_L1=4
 moire_BZ_L2=4
 
 
-MagField_ZeemanSplitting=0.00
+MagField_ZeemanSplitting=0.0
 
 MagneticUnitCell_NMat_row1=1 0
 MagneticUnitCell_NMat_row2=0 1
 
 No_of_bands_used_for_HartreeFock=3
-eps_DE=10.0
-distance_to_gate_in_angstorm=200
+eps_DE=30.0
+distance_to_gate_in_angstorm=100
 
 Read_OrderParams=false
 OrderParamsReadingType=RealSpace
@@ -55,11 +59,10 @@ OrderParamsInputFile=OP_Final.txt
 OrderParamsOutputFile=OP_Final2.txt
 
 
+Imposing_SzZero=1
 
-Imposing_SzZero=0
 
-
-holedensity_per_moire_unit_cell=2.0
+holedensity_per_moire_unit_cell=3.0
 
 Cooling=1
 Temperature_in_Kelvin=1 0.0001
@@ -71,6 +74,6 @@ Convergence_technique=AndersonMixing
 SimpleMixing_alpha=0.5
 #alpha*new  + (1-alpha)*old
 
-Anderson_mixing_m=20
-Max_HFIterations=10000
-RandomSeed=4
+Anderson_mixing_m=30
+Max_HFIterations=20000
+RandomSeed=5

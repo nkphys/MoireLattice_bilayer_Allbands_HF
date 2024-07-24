@@ -17,6 +17,7 @@
 \usepackage{calc}
 \usepackage{graphicx}
 \usepackage{color}
+\usepackage[utf8x]{inputenc}
 \makeatletter
 % Select an appropriate default driver (from TeXLive graphics.cfg)
 \begingroup
@@ -137,39 +138,37 @@
     \fi%
     \setlength{\fboxrule}{0.5pt}%
     \setlength{\fboxsep}{1pt}%
+    \definecolor{tbcol}{rgb}{1,1,1}%
 \begin{picture}(7200.00,5040.00)%
     \gplgaddtomacro\gplbacktext{%
-      \csname LTb\endcsname%%
-      \put(462,440){\makebox(0,0)[r]{\strut{}$-6$}}%
-      \put(462,1114){\makebox(0,0)[r]{\strut{}$-4$}}%
-      \put(462,1787){\makebox(0,0)[r]{\strut{}$-2$}}%
-      \put(462,2461){\makebox(0,0)[r]{\strut{}$0$}}%
-      \put(462,3135){\makebox(0,0)[r]{\strut{}$2$}}%
-      \put(462,3808){\makebox(0,0)[r]{\strut{}$4$}}%
-      \put(462,4482){\makebox(0,0)[r]{\strut{}$6$}}%
-      \put(992,220){\makebox(0,0){\strut{}$0$}}%
-      \put(1789,220){\makebox(0,0){\strut{}$2$}}%
-      \put(2586,220){\makebox(0,0){\strut{}$4$}}%
-      \put(3382,220){\makebox(0,0){\strut{}$6$}}%
-      \put(4179,220){\makebox(0,0){\strut{}$8$}}%
-      \put(4975,220){\makebox(0,0){\strut{}$10$}}%
-      \put(5772,220){\makebox(0,0){\strut{}$12$}}%
     }%
     \gplgaddtomacro\gplfronttext{%
       \csname LTb\endcsname%%
-      \put(6291,440){\makebox(0,0)[l]{\strut{}$0$}}%
-      \put(6291,926){\makebox(0,0)[l]{\strut{}$1\times10^{-7}$}}%
-      \put(6291,1413){\makebox(0,0)[l]{\strut{}$2\times10^{-7}$}}%
-      \put(6291,1899){\makebox(0,0)[l]{\strut{}$3\times10^{-7}$}}%
-      \put(6291,2386){\makebox(0,0)[l]{\strut{}$4\times10^{-7}$}}%
-      \put(6291,2872){\makebox(0,0)[l]{\strut{}$5\times10^{-7}$}}%
-      \put(6291,3359){\makebox(0,0)[l]{\strut{}$6\times10^{-7}$}}%
-      \put(6291,3845){\makebox(0,0)[l]{\strut{}$7\times10^{-7}$}}%
-      \put(6291,4332){\makebox(0,0)[l]{\strut{}$8\times10^{-7}$}}%
-      \put(6291,4819){\makebox(0,0)[l]{\strut{}$9\times10^{-7}$}}%
+      \put(1243,674){\makebox(0,0){\strut{}$0$}}%
+      \put(1981,674){\makebox(0,0){\strut{}$2$}}%
+      \put(2719,674){\makebox(0,0){\strut{}$4$}}%
+      \put(3456,674){\makebox(0,0){\strut{}$6$}}%
+      \put(4194,674){\makebox(0,0){\strut{}$8$}}%
+      \put(4932,674){\makebox(0,0){\strut{}$10$}}%
+      \put(5670,674){\makebox(0,0){\strut{}$12$}}%
+      \put(650,938){\makebox(0,0)[r]{\strut{}$-6$}}%
+      \put(650,1458){\makebox(0,0)[r]{\strut{}$-4$}}%
+      \put(650,1979){\makebox(0,0)[r]{\strut{}$-2$}}%
+      \put(650,2500){\makebox(0,0)[r]{\strut{}$0$}}%
+      \put(650,3020){\makebox(0,0)[r]{\strut{}$2$}}%
+      \put(650,3541){\makebox(0,0)[r]{\strut{}$4$}}%
+      \put(650,4062){\makebox(0,0)[r]{\strut{}$6$}}%
+      \put(6293,938){\makebox(0,0)[l]{\strut{}$0$}}%
+      \put(6293,1421){\makebox(0,0)[l]{\strut{}$0.02$}}%
+      \put(6293,1904){\makebox(0,0)[l]{\strut{}$0.04$}}%
+      \put(6293,2388){\makebox(0,0)[l]{\strut{}$0.06$}}%
+      \put(6293,2871){\makebox(0,0)[l]{\strut{}$0.08$}}%
+      \put(6293,3355){\makebox(0,0)[l]{\strut{}$0.1$}}%
+      \put(6293,3838){\makebox(0,0)[l]{\strut{}$0.12$}}%
+      \put(6293,4322){\makebox(0,0)[l]{\strut{}$0.14$}}%
     }%
     \gplbacktext
-    \put(0,0){\includegraphics{plot_TL2-inc}}%
+    \put(0,0){\includegraphics[width={360.00bp},height={252.00bp}]{plot_TL2-inc}}%
     \gplfronttext
   \end{picture}%
 \endgroup

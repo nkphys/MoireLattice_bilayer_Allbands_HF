@@ -6,8 +6,8 @@ class Parameters{
 
 public:
 
-    double V_param_top,V_param_bottom, Psi_param, omega_param, a_moire;
-    double V2_param_top , V2_param_bottom, omega2_param;
+    double V_param_top,V_param_bottom, Psi_param, a_moire;
+    double V2_param_top , V2_param_bottom, omega_param, omega0_param, omega1_param, omega2_param;
     double TwistTheta, a_monolayer, MStar_top, MStar_bottom, eps_DE;
     int Grid_moireRL_L1, Grid_moireRL_L2;
     int moire_BZ_L1, moire_BZ_L2;
@@ -93,6 +93,8 @@ void Parameters::Initialize(string inputfile_){
 
     Psi_param = matchstring(inputfile_,"Psi_param_in_radians");
     omega_param = matchstring(inputfile_,"omega_param_in_meV");
+    omega0_param = matchstring(inputfile_,"omega0_param_in_meV");
+    omega1_param = matchstring(inputfile_,"omega1_param_in_meV");
     omega2_param = matchstring(inputfile_,"omega2_param_in_meV");
     Grid_moireRL_L1 = int(matchstring(inputfile_,"Grid_moireReciprocalLattice_L1"));
     Grid_moireRL_L2 = int(matchstring(inputfile_,"Grid_moireReciprocalLattice_L2"));
@@ -193,7 +195,10 @@ void Parameters::Initialize(string inputfile_){
     assert(abs(ValleyTau)==1);
 
     if(MaterialName=="MoTe2Homobilayer" || MaterialName=="MoSe2Homobilayer" ||
-       MaterialName=="MoS2Homobilayer" || MaterialName=="WS2Homobilayer"){
+       MaterialName=="MoS2Homobilayer" || MaterialName=="WS2Homobilayer" ||
+       MaterialName=="MoSe2HomobilayerWithDisplacementField" ||
+       MaterialName=="MoS2HomobilayerWithDisplacementField" ||
+       MaterialName=="WS2HomobilayerWithDisplacementField"){
     a_moire = a_monolayer/abs(TwistTheta);
     }
     if(MaterialName=="MoTe2WSe2Bilayer"){
@@ -221,7 +226,10 @@ void Parameters::Initialize(string inputfile_){
        MaterialName == "WSe2WS2Bilayer"     ){
     max_layer_ind=1;
     }
-    else if(MaterialName=="MoTe2Homobilayer"){
+    else if(MaterialName=="MoTe2Homobilayer" ||
+            MaterialName=="MoSe2HomobilayerWithDisplacementField" ||
+            MaterialName=="MoS2HomobilayerWithDisplacementField" ||
+            MaterialName=="WS2HomobilayerWithDisplacementField"){
     max_layer_ind=2;
     }
     else{

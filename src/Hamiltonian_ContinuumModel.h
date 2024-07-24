@@ -32,13 +32,18 @@ public:
     void HTBCreate_MoTe2WSe2Bilayer();
     void HTBCreate_WSe2WS2Bilayer();
     void HTBCreate_GammaValleyHomobilayer();
+    void HTBCreate_GammaValleyHomobilayerWithDisplacementField();
     double NIEnergy(double kx_val, double ky_val);
 
     void Diagonalize(char option);   //::DONE
     void copy_eigs(int i);  //::DONE
     void Get_Overlap_layers(int state_ind);
 
+    void Getting_kx_ky_in_Primitive_BZ(double & _kx_, double & _ky_, int n1, int n2, int &n1_new, int &n2_new);
+    void Getting_n1_n2_in_Primitive_BZ(int n1, int n2, int &n1_new, int &n2_new, int &g1_off, int &g2_off);
     void Saving_NonInteractingSpectrum();
+    void Saving_NonInteractingSpectrum_PrimBZ();
+    void Create_PBZ_map();
     void NonInteractingSpectrum_AlongPath(Mat_1_intpair k_path);
     void Calculate_ChernNumbers();
     Mat_1_intpair Get_k_path(int path_no);
@@ -53,6 +58,9 @@ public:
     int valley;
     int mbz_factor;
 
+    Mat_2_int PBZ_map_n1, PBZ_map_n2;
+
+
     Matrix<complex<double>> HTB_;
     Matrix<complex<double>> Ham_;
     Matrix<double> Tx,Ty,Tpxpy,Tpxmy;
@@ -60,7 +68,9 @@ public:
 
     
     Mat_4_Complex_doub BlochStates; //[valley(spin)][band][k][G,l]
+    Mat_4_Complex_doub BlochStates_PBZ; //[valley(spin)][band][k][G,l]
     Mat_3_doub eigvals; //[valley(spin)][band][k]
+    Mat_3_doub eigvals_PBZ; //[valley(spin)][band][k]
     double Overlap_bottom, Overlap_top;
 
     //real space  effective H params
@@ -86,13 +96,17 @@ void Hamiltonian_ContinuumModel::Initialize(){
     eigs_.resize(space);
     eigs_saved_.resize(space);
 
+
     k_plusx = (-1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire);
     k_plusy = (-1.0/3.0)*(2.0*PI/Parameters_.a_moire);
+
+
     k_minusx = (-1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire);
     k_minusy = (1.0/3.0)*(2.0*PI/Parameters_.a_moire);
 
     k_plusx_p = (1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire);
     k_plusy_p = (-1.0/3.0)*(2.0*PI/Parameters_.a_moire);
+
     k_minusx_p = (1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire);
     k_minusy_p = (1.0/3.0)*(2.0*PI/Parameters_.a_moire);
 
@@ -116,6 +130,15 @@ void Hamiltonian_ContinuumModel::Initialize(){
 
     mbz_factor=1;
 
+    PBZ_map_n1.resize(Parameters_.moire_BZ_L1);
+    for(int i1=0;i1<Parameters_.moire_BZ_L1;i1++){
+    PBZ_map_n1[i1].resize(Parameters_.moire_BZ_L2);
+    }
+
+    PBZ_map_n2.resize(Parameters_.moire_BZ_L1);
+    for(int i1=0;i1<Parameters_.moire_BZ_L1;i1++){
+    PBZ_map_n2[i1].resize(Parameters_.moire_BZ_L2);
+    }
 } // ----------
 
 
@@ -332,6 +355,8 @@ void Hamiltonian_ContinuumModel::NonInteractingSpectrum_AlongPath(Mat_1_intpair 
     kx_=(2.0*PI/Parameters_.a_moire)*((n1)*(1.0/(sqrt(3)*L1_))  +  (n2)*(1.0/(sqrt(3)*L2_)));
     ky_=(2.0*PI/Parameters_.a_moire)*((n1)*(-1.0/(L1_))  +  (n2)*(1.0/(L2_)));
 
+    //    Getting_kx_ky_in_Primitive_BZ(kx_, ky_, n1, n2);
+
     HTBCreate();
     char Dflag='V';
     Diagonalize(Dflag);
@@ -346,6 +371,214 @@ void Hamiltonian_ContinuumModel::NonInteractingSpectrum_AlongPath(Mat_1_intpair 
 
 
 }
+
+void Hamiltonian_ContinuumModel::Create_PBZ_map(){
+
+    int L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+    int L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+    int n1_new, n2_new;
+    double kx_temp, ky_temp;
+    for(int n1=0;n1<L1_;n1++){
+        for(int n2=0;n2<L2_;n2++){
+         Getting_kx_ky_in_Primitive_BZ(kx_temp, ky_temp, n1, n2, n1_new, n2_new);
+        PBZ_map_n1[n1][n2]=n1_new;
+        PBZ_map_n2[n1][n2]=n2_new;
+        }}
+
+}
+
+
+
+void Hamiltonian_ContinuumModel::Getting_n1_n2_in_Primitive_BZ(int n1, int n2, int &n1_new, int &n2_new, int &g1_off, int &g2_off){
+
+
+    int L1_,L2_;
+   L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+   L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+
+   // kx_=(2.0*PI/Parameters_.a_moire)*((n1)*(1.0/(sqrt(3)*L1_))  +  (n2)*(1.0/(sqrt(3)*L2_)));
+   // ky_=(2.0*PI/Parameters_.a_moire)*((n1)*(-1.0/(L1_))  +  (n2)*(1.0/(L2_)));
+
+   int g1_temp, g2_temp;
+   double kx_temp, ky_temp;
+   double dis_temp;
+   double kx_final, ky_final;
+   kx_final=(2.0*PI/Parameters_.a_moire)*((n1 + 0*L1_)*(1.0/(sqrt(3)*L1_))  +  (n2+ 0*L2_)*(1.0/(sqrt(3)*L2_)));
+   ky_final=(2.0*PI/Parameters_.a_moire)*((n1 + 0*L1_)*(-1.0/(L1_))  +  (n2+ 0*L2_)*(1.0/(L2_)));
+   double dis=(kx_final*kx_final  + ky_final*ky_final);
+   int n1_new_final=n1;
+   int n2_new_final=n2;
+    g1_temp=0;
+    g2_temp=0;
+
+   for(int g1_=-1;g1_<=0;g1_++){
+       for(int g2_=-1;g2_<=0;g2_++){
+        kx_temp=(2.0*PI/Parameters_.a_moire)*((n1 + g1_*L1_)*(1.0/(sqrt(3)*L1_))  +  (n2+ g2_*L2_)*(1.0/(sqrt(3)*L2_)));
+        ky_temp=(2.0*PI/Parameters_.a_moire)*((n1 + g1_*L1_)*(-1.0/(L1_))  +  (n2+ g2_*L2_)*(1.0/(L2_)));
+        dis_temp=(kx_temp*kx_temp  + ky_temp*ky_temp);
+        if(dis_temp<dis){
+        dis = dis_temp;
+        kx_final=kx_temp;
+        ky_final=ky_temp;
+        n1_new_final = n1 + g1_*L1_;
+        n2_new_final = n2 + g2_*L2_;
+        g1_temp = g1_;
+        g2_temp = g2_;
+        }
+       }
+   }
+
+
+   g1_off=g1_temp;
+   g2_off=g2_temp;
+
+   n1_new = n1_new_final;
+   n2_new = n2_new_final;
+
+
+}
+
+void Hamiltonian_ContinuumModel::Getting_kx_ky_in_Primitive_BZ(double & _kx_, double & _ky_, int n1, int n2, int &n1_new, int &n2_new){
+
+
+    int L1_,L2_;
+   L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+   L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+
+   // kx_=(2.0*PI/Parameters_.a_moire)*((n1)*(1.0/(sqrt(3)*L1_))  +  (n2)*(1.0/(sqrt(3)*L2_)));
+   // ky_=(2.0*PI/Parameters_.a_moire)*((n1)*(-1.0/(L1_))  +  (n2)*(1.0/(L2_)));
+
+   int min_g1, min_g2;
+   double kx_temp, ky_temp;
+   double dis_temp;
+   double kx_final, ky_final;
+   kx_final=(2.0*PI/Parameters_.a_moire)*((n1 + 0*L1_)*(1.0/(sqrt(3)*L1_))  +  (n2+ 0*L2_)*(1.0/(sqrt(3)*L2_)));
+   ky_final=(2.0*PI/Parameters_.a_moire)*((n1 + 0*L1_)*(-1.0/(L1_))  +  (n2+ 0*L2_)*(1.0/(L2_)));
+   double dis=(kx_final*kx_final  + ky_final*ky_final);
+   int n1_new_final=n1;
+   int n2_new_final=n2;
+
+   for(int g1_=-1;g1_<=0;g1_++){
+       for(int g2_=-1;g2_<=0;g2_++){
+        kx_temp=(2.0*PI/Parameters_.a_moire)*((n1 + g1_*L1_)*(1.0/(sqrt(3)*L1_))  +  (n2+ g2_*L2_)*(1.0/(sqrt(3)*L2_)));
+        ky_temp=(2.0*PI/Parameters_.a_moire)*((n1 + g1_*L1_)*(-1.0/(L1_))  +  (n2+ g2_*L2_)*(1.0/(L2_)));
+        dis_temp=(kx_temp*kx_temp  + ky_temp*ky_temp);
+        if(dis_temp<dis){
+        dis=dis_temp;
+        kx_final=kx_temp;
+        ky_final=ky_temp;
+        n1_new_final = n1 + g1_*L1_;
+        n2_new_final = n2 + g2_*L2_;
+        }
+       }
+   }
+
+
+   _kx_=kx_final;
+   _ky_=ky_final;
+
+   n1_new = n1_new_final;
+   n2_new = n2_new_final;
+
+   //overwritten
+  // kx_=(2.0*PI/Parameters_.a_moire)*((n1 + 0*L1_)*(1.0/(sqrt(3)*L1_))  +  (n2+ 0*L2_)*(1.0/(sqrt(3)*L2_)));
+  // ky_=(2.0*PI/Parameters_.a_moire)*((n1 + 0*L1_)*(-1.0/(L1_))  +  (n2+ 0*L2_)*(1.0/(L2_)));
+
+}
+
+
+void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum_PrimBZ(){
+
+
+
+        mbz_factor=1;
+
+         int L1_,L2_;
+        L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+        L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+        int N_bands = Parameters_.N_bands_HF;
+
+        int comp;
+
+        //REMEMBER TO USE ONLY INSIDE BZ k points for HF not the extra k1, k2 line.
+        BlochStates_PBZ.resize(2);
+        for(int spin=0;spin<2;spin++){
+          BlochStates_PBZ[spin].resize(N_bands);
+          for(int n=0;n<N_bands;n++){
+            BlochStates_PBZ[spin][n].resize(((mbz_factor*L1_))*((mbz_factor*L2_)));
+            for(int i=0;i<((mbz_factor*L1_))*((mbz_factor*L2_));i++){  //k_ind
+               BlochStates_PBZ[spin][n][i].resize(ns_*Coordinates_.n_orbs_); //G_ind*layer
+            }
+          }
+        }
+
+        eigvals_PBZ.resize(2);
+        for(int spin=0;spin<2;spin++){
+        eigvals_PBZ[spin].resize(N_bands);
+            for(int n=0;n<N_bands;n++){
+                eigvals_PBZ[spin][n].resize(((mbz_factor*L1_))*((mbz_factor*L2_)));
+            }
+        }
+
+
+        int k_ind;
+        int n1_new, n2_new;
+        for(int spin=0;spin<=1;spin++){
+        string file_bands_out="PBZ_Bands_energy_FullSpectrum_spin" + to_string(spin)+".txt";
+        ofstream FileBandsOut(file_bands_out.c_str());
+        FileBandsOut<<"#n1   n2   E0(n1,n2)   E1(n1,n2)  ..."<<endl;
+
+            valley = 2*spin -1;
+        for(int n1=0;n1<mbz_factor*L1_;n1++){
+            for(int n2=0;n2<mbz_factor*L2_;n2++){
+                FileBandsOut<<n1<<"  "<<n2<<"  ";
+            k_ind = n1 + ((mbz_factor*L1_))*n2;
+
+        //kx_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(1.0/(sqrt(3)*L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(sqrt(3)*L2_)));
+        //ky_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(-1.0/(L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(L2_)));
+
+        Getting_kx_ky_in_Primitive_BZ(kx_, ky_, n1, n2, n1_new, n2_new);
+       // kx_=(2.0*PI/Parameters_.a_moire)*((n1)*(1.0/(sqrt(3)*L1_))  +  (n2)*(1.0/(sqrt(3)*L2_)));
+       // ky_=(2.0*PI/Parameters_.a_moire)*((n1)*(-1.0/(L1_))  +  (n2)*(1.0/(L2_)));
+
+        HTBCreate();
+//        string filename = "Hamil_ContModel_n1_n2_" + to_string(n1) +"_"+to_string(n2)+ "_spin" + to_string(spin) +".txt";
+//        Ham_.print_in_file(filename, 4);
+
+        char Dflag='V';
+        Diagonalize(Dflag);
+
+        for(int n=0;n<N_bands;n++){
+            FileBandsOut<<eigs_[n]<<"  ";
+           eigvals_PBZ[spin][n][k_ind] = eigs_[n];
+
+    // string file_BlochState="PBZ_BlochState_spin"+to_string(spin)+"_band"+to_string(n)+"k_mbz_"+to_string(n1)+"_"+to_string(n2)+".txt";
+  //ofstream fl_BlochState_out(file_BlochState.c_str());
+ //fl_BlochState_out<<"#G1  G2   unk(layer=0).real  imag   unk(layer=1).real  imag"<<endl;
+            for(int i1=0;i1<l1_;i1++){
+                for(int i2=0;i2<l2_;i2++){
+   //              fl_BlochState_out<<i1<<" "<<i2<<"  ";
+                for(int orb=0;orb< Coordinates_.n_orbs_ ;orb++){//layer
+                comp=Coordinates_.Nbasis(i1, i2, orb);
+                BlochStates_PBZ[spin][n][k_ind][comp]=Ham_(comp,n);
+     //            fl_BlochState_out<<BlochStates_PBZ[spin][n][k_ind][comp].real()<<"  "<<BlochStates_PBZ[spin][n][k_ind][comp].imag()<<"  ";
+                }
+       //          fl_BlochState_out<<endl;
+            }
+         //    fl_BlochState_out<<endl;
+        }
+        }
+        FileBandsOut<<endl;
+
+        cout<<n1<<"("<<((mbz_factor*L1_))<<")  "<<n2<<"("<<((mbz_factor*L2_))<<")  "<<spin<<"(2)  done"<<endl;
+        }
+        FileBandsOut<<endl;
+        }
+        }
+
+
+}
+
 
 void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum(){
 
@@ -393,13 +626,18 @@ void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum(){
             for(int n2=0;n2<mbz_factor*L2_+1;n2++){
                 FileBandsOut<<n1<<"  "<<n2<<"  ";
             k_ind = n1 + ((mbz_factor*L1_)+1)*n2;
+
         //kx_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(1.0/(sqrt(3)*L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(sqrt(3)*L2_)));
         //ky_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(-1.0/(L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(L2_)));
         
+       // Getting_kx_ky_in_Primitive_BZ(kx_, ky_, n1, n2);
         kx_=(2.0*PI/Parameters_.a_moire)*((n1)*(1.0/(sqrt(3)*L1_))  +  (n2)*(1.0/(sqrt(3)*L2_)));
         ky_=(2.0*PI/Parameters_.a_moire)*((n1)*(-1.0/(L1_))  +  (n2)*(1.0/(L2_)));
 
         HTBCreate();
+//        string filename = "Hamil_ContModel_n1_n2_" + to_string(n1) +"_"+to_string(n2)+ "_spin" + to_string(spin) +".txt";
+//        Ham_.print_in_file(filename, 4);
+
         char Dflag='V';
         Diagonalize(Dflag);
 
@@ -470,8 +708,6 @@ void Hamiltonian_ContinuumModel::Check_Hermiticity()
 
     // cout<<"Hermiticity: "<<temp<<endl;
 }
-
-
 
 
 
@@ -554,10 +790,15 @@ void Hamiltonian_ContinuumModel::HTBCreate(){
        Parameters_.MaterialName=="WS2Homobilayer"){
        HTBCreate_GammaValleyHomobilayer();
     }
+    if(Parameters_.MaterialName=="MoSe2HomobilayerWithDisplacementField" || Parameters_.MaterialName=="MoS2HomobilayerWithDisplacementField" ||
+       Parameters_.MaterialName=="WS2HomobilayerWithDisplacementField"){
+       HTBCreate_GammaValleyHomobilayerWithDisplacementField();
+    }
 
     if(!(Parameters_.MaterialName=="WSe2WS2Bilayer"  || Parameters_.MaterialName=="MoTe2WSe2Bilayer" || Parameters_.MaterialName=="MoTe2Homobilayer" ||
          Parameters_.MaterialName=="MoSe2Homobilayer" || Parameters_.MaterialName=="MoS2Homobilayer" ||
-         Parameters_.MaterialName=="WS2Homobilayer")
+         Parameters_.MaterialName=="WS2Homobilayer" || Parameters_.MaterialName=="MoSe2HomobilayerWithDisplacementField" || Parameters_.MaterialName=="MoS2HomobilayerWithDisplacementField" ||
+         Parameters_.MaterialName=="WS2HomobilayerWithDisplacementField")
     ){
         cout<<"Requires correct MaterialName in input file"<<endl;
         assert(false);
@@ -729,7 +970,8 @@ void Hamiltonian_ContinuumModel::HTBCreate_MoTe2Homobilayer(){
     //This is written in hole operators
 
 
-    Ham_.resize(ns_*2,ns_*2);
+    Ham_.resize(ns_*2,ns_*2); //here 2 is for layers
+
     double b1x_, b1y_, b6x_, b6y_, b2x_, b2y_;
 
     //G1+G2
@@ -761,7 +1003,9 @@ void Hamiltonian_ContinuumModel::HTBCreate_MoTe2Homobilayer(){
             for(int orb=0;orb<2;orb++){
                 row=Coordinates_.Nbasis(i1, i2, orb);
                 if(orb==Bottom_){
+
                     if(true){
+
                     //1
                     col = row;
                     Ham_(row,col) += ((-1.0/Parameters_.MStar_bottom)*NIEnergy(kx_local - valley*k_plusx, ky_local - valley*k_plusy)) + (-1.0*Parameters_.Vz_bottom);
@@ -876,6 +1120,7 @@ void Hamiltonian_ContinuumModel::HTBCreate_MoTe2Homobilayer(){
                         col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
                         Ham_(row,col) += -1.0*Parameters_.omega_param;
                     }
+
 
 
                     // (0,1)=g^{1}_{2} (w1)
@@ -1258,6 +1503,409 @@ void Hamiltonian_ContinuumModel::HTBCreate_WSe2WS2Bilayer(){
 } // ----------
 
 
+
+
+void Hamiltonian_ContinuumModel::HTBCreate_GammaValleyHomobilayerWithDisplacementField(){
+
+
+    //This is written in hole operators
+
+
+    Ham_.resize(ns_*2,ns_*2); //here 2 is for layers
+
+    double b1x_, b1y_, b6x_, b6y_, b2x_, b2y_;
+
+    //G1+G2
+    b1x_=(2.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G1+G2
+    b1y_=(0.0)*(2.0*PI/Parameters_.a_moire);
+
+    //G1
+    b6x_=(1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G1
+    b6y_=(-1.0)*(2.0*PI/Parameters_.a_moire);
+
+
+    //G2
+    b2x_=(1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G2
+    b2y_=(1.0)*(2.0*PI/Parameters_.a_moire);  //G2
+
+    int Bottom_, Top_;
+    Bottom_=0;Top_=1;
+
+    //l1_/2,l2_/2 is the k-point
+
+    double kx_local, ky_local;
+
+    int row, col;
+    int i1_neigh, i2_neigh;
+    for(int i1=0;i1<l1_;i1++){
+        for(int i2=0;i2<l2_;i2++){
+            kx_local = kx_ + (-(l1_/2)+i1)*(b6x_) + (-(l2_/2)+i2)*(b2x_);
+            ky_local = ky_ + (-(l1_/2)+i1)*(b6y_) + (-(l2_/2)+i2)*(b2y_);
+            for(int orb=0;orb<2;orb++){
+                row=Coordinates_.Nbasis(i1, i2, orb);
+                if(orb==Bottom_){
+
+                    if(true){
+
+                    //1
+                    col = row;
+                    Ham_(row,col) += ((-1.0/Parameters_.MStar_bottom)*NIEnergy(kx_local, ky_local)) + (-1.0*Parameters_.Vz_bottom);
+
+                    //2 i.e +/- b1  (V1)
+                    i1_neigh = i1 + 1;
+                    i2_neigh = i2 + 1;
+                    if(i1_neigh<l1_ && i2_neigh<l2_){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_bottom*exp(iota_complex*Parameters_.Psi_param);
+                    }
+                    i1_neigh = i1 - 1;
+                    i2_neigh = i2 - 1;
+                    if(i1_neigh>=0 && i2_neigh>=0){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_bottom*exp(-iota_complex*Parameters_.Psi_param);
+                    }
+
+
+                    //3 i.e +/- b3  (V1)
+                    i1_neigh = i1 - 1;
+                    i2_neigh = i2;
+                    if(i1_neigh>=0){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_bottom*exp(iota_complex*Parameters_.Psi_param);
+                    }
+                    i1_neigh = i1 + 1;
+                    i2_neigh = i2;
+                    if(i1_neigh<l1_){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_bottom*exp(-iota_complex*Parameters_.Psi_param);
+                    }
+
+
+                    //4 i.e +/- b5 (V1)
+                    i1_neigh = i1;
+                    i2_neigh = i2 - 1;
+                    if(i2_neigh>=0){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_bottom*exp(iota_complex*Parameters_.Psi_param);
+                    }
+                    i1_neigh = i1;
+                    i2_neigh = i2 + 1;
+                    if(i2_neigh<l2_){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_bottom*exp(-iota_complex*Parameters_.Psi_param);
+                    }
+
+
+
+                    //w0
+                    col = Coordinates_.Nbasis(i1, i2, Top_);
+                    Ham_(row,col) += -1.0*Parameters_.omega0_param;
+
+
+                    // +/- b1 (w1)
+                    i1_neigh = i1 + 1;
+                    i2_neigh = i2 + 1;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+                    i1_neigh = i1 - 1;
+                    i2_neigh = i2 - 1;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+
+                    // +/-b3  (w1)
+                    i1_neigh = i1 - 1;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+                    i1_neigh = i1 + 1;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+
+                    // +b5 (w1)
+                    i1_neigh = i1;
+                    i2_neigh = i2 - 1;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+                    i1_neigh = i1;
+                    i2_neigh = i2 + 1;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+
+
+                    // +/-2b1 (w2)
+                    i1_neigh = i1 + 2;
+                    i2_neigh = i2 + 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+                    i1_neigh = i1 - 2;
+                    i2_neigh = i2 - 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+
+
+                    // +/-2b3  (w2)
+                    i1_neigh = i1 - 2;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+                    i1_neigh = i1 + 2;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+
+                    // +/- 2b5 (w2)
+                    i1_neigh = i1;
+                    i2_neigh = i2 - 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+                    i1_neigh = i1;
+                    i2_neigh = i2 + 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Top_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+
+
+
+
+
+                }
+                }
+                else{//i.e. orb=Top_
+                    if(true){
+
+                    //1
+                    col = row;
+                    Ham_(row,col) += ((-1.0/Parameters_.MStar_top)*NIEnergy(kx_local, ky_local )) + (-1.0*Parameters_.Vz_top);
+
+                    //2 i.e +/- b1
+                    i1_neigh = i1 + 1;
+                    i2_neigh = i2 + 1;
+                    if(i1_neigh<l1_ && i2_neigh<l2_){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_top*exp(-iota_complex*Parameters_.Psi_param);
+                    }
+                    i1_neigh = i1 - 1;
+                    i2_neigh = i2 - 1;
+                    if(i1_neigh>=0 && i2_neigh>=0){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_top*exp(iota_complex*Parameters_.Psi_param);
+                    }
+
+
+                    //3 i.e +/- b3
+                    i1_neigh = i1 - 1;
+                    i2_neigh = i2;
+                    if(i1_neigh>=0 && i2_neigh<l2_){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_top*exp(-iota_complex*Parameters_.Psi_param);
+                    }
+                    i1_neigh = i1 + 1;
+                    i2_neigh = i2;
+                    if(i1_neigh<l1_ && i2_neigh>=0){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_top*exp(iota_complex*Parameters_.Psi_param);
+                    }
+
+
+                    //4 i.e +/- b5
+                    i1_neigh = i1;
+                    i2_neigh = i2 - 1;
+                    if(i2_neigh>=0){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_top*exp(-iota_complex*Parameters_.Psi_param);
+                    }
+                    i1_neigh = i1;
+                    i2_neigh = i2 + 1;
+                    if(i2_neigh<l2_){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, orb);
+                        Ham_(row,col) += -1.0*Parameters_.V_param_top*exp(iota_complex*Parameters_.Psi_param);
+                    }
+
+
+
+
+                    // w0
+                    col = Coordinates_.Nbasis(i1, i2, Bottom_);
+                    Ham_(row,col) += -1.0*Parameters_.omega0_param;
+
+
+
+                    // +b1 (w1)
+                    i1_neigh = i1-1;
+                    i2_neigh = i2-1;
+                    if(
+            (i2_neigh<l2_ && i2_neigh>=0) &&
+                        (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+                    i1_neigh = i1+1;
+                    i2_neigh = i2+1;
+                    if(
+            (i2_neigh<l2_ && i2_neigh>=0) &&
+                        (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+
+
+                    // +b3  (w1)
+                    i1_neigh = i1 + 1;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+                    i1_neigh = i1 - 1;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+
+                    // +b5 (w1)
+                    i1_neigh = i1;
+                    i2_neigh = i2 + 1;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+                    i1_neigh = i1;
+                    i2_neigh = i2 - 1;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega1_param;
+                    }
+
+
+                    // +2b1 (w2)
+                    i1_neigh = i1 - 2;
+                    i2_neigh = i2 - 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+                    i1_neigh = i1 + 2;
+                    i2_neigh = i2 + 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+
+                    // +2b3  (w2)
+                    i1_neigh = i1 + 2;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+                    i1_neigh = i1 - 2;
+                    i2_neigh = i2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+
+
+                    // +2b5 (w2)
+                    i1_neigh = i1;
+                    i2_neigh = i2 + 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+                    i1_neigh = i1;
+                    i2_neigh = i2 - 2;
+                    if( (i2_neigh<l2_ && i2_neigh>=0) &&
+            (i1_neigh<l1_ && i1_neigh>=0)
+            ){//OBC
+                        col = Coordinates_.Nbasis(i1_neigh, i2_neigh, Bottom_);
+                        Ham_(row,col) += -1.0*Parameters_.omega2_param;
+                    }
+
+
+
+                }
+                }
+
+            }
+        }
+    }
+
+
+
+
+
+}
+
 void Hamiltonian_ContinuumModel::HTBCreate_GammaValleyHomobilayer(){
 
     //This is written in hole operators
@@ -1378,6 +2026,45 @@ int n1, n2;
         L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
         L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
 
+
+        if(path_no==0){
+            //Gamma to  K=(n1=-L1/3, n2=L2/3)
+            n1=0;
+            n2=0;
+                while(n2<=int(L2_/3)){
+            temp_pair.first = n1;
+                    temp_pair.second = n2;
+                    k_path.push_back(temp_pair);
+            n1--;
+            n2++;
+                //cout<<n1<<"  "<<n2<<endl;
+            }
+
+
+            //K to M=(n1=0, n2 = L2/2)
+            n2 = int(L2_/3)+1;
+                n1 = -int(L1_/3) +2;
+            while(n2<=int(L2_/2)){
+            temp_pair.first = n1;
+                temp_pair.second = n2;
+                k_path.push_back(temp_pair);
+                n2 = n2+1;
+            n1 = n1+2;
+            //cout<<n1<<"  "<<n2<<endl;
+            }
+
+            //assert(n1==0);
+            n1=0;
+            n2=int(L2_/2);
+            //M to Gamma
+            n2 = n2-1;
+            while(n2>=0){
+                temp_pair.first = n1;
+                temp_pair.second = n2;
+                k_path.push_back(temp_pair);
+                n2 = n2-1;
+                }
+        }
 
 
         if(path_no==1){

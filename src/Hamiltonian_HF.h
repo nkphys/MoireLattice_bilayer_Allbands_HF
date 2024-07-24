@@ -43,14 +43,17 @@ public:
     void Folding_to_BrillouinZone(int k1, int k2, int &k1_new, int &k2_new, int &G1_ind, int &G2_ind);
     complex<double> FormFactor(int spin, int band1, int band2, int k1_vec_ind1,int k1_vec_ind2, int k2_vec_ind1, int k2_vec_ind2);
     void PrintFormFactors(int band1, int band2, int spin);
-    void PrintBlochStates();
+    void PrintFormFactors2(int band1, int band2, int spin);
+    void PrintBlochStates_old();
     complex<double> Interaction_value(int spin, int spin_p, int band1, int band2, int band3, int band4, int k1_ind, int k2_ind, int q_ind);
+    complex<double> Interaction_value_new(int spin, int spin_p, int band1, int band2, int band3, int band4, int k1_ind, int k2_ind, int q_ind);
     void Create_Amat_and_Bmat();
     void Create_Hbar_and_Fbar();
     void Save_InteractionVal();
     double V_int(double q_val);
     void Print_Interaction_value();
     void Print_Interaction_value2(int k1_ind, int k2_ind);
+    void Print_Interaction_value3();
     void Print_Vint();
     void Create_k_sublattices();
     void Print_k_sublattices();
@@ -99,6 +102,14 @@ public:
     void Write_ordered_spectrum(string filename);
     void Imposing_ZeroSz();
     void Create_PMat();
+    void PrintBlochStates();
+    void PrintBlochStatesPBZ();
+    void Print_HF_Band_Projected_Interaction();
+    void Create_Lambda_PBZ();
+    bool Present(string type, pair_int k_temp);
+    void PrintFormFactors_PBZ(int band1, int band2, int spin);
+    int Get_maximum_comp(Mat_1_Complex_doub Vec_);
+    void Print_HF_Band_Projected_Interaction_TR_and_Inversion_imposed();
     //---------------------------------------
    
 
@@ -145,6 +156,7 @@ public:
     //Form factors
     Mat_5_Complex_doub Lambda_;
     Mat_9_Complex_doub LambdaNew_;
+    Mat_9_Complex_doub LambdaPBZ_k1_m_q, LambdaPBZ_k2_p_q;
     int Lambda_G_grid_L1_min, Lambda_G_grid_L1_max, Lambda_G1_grid_size;
     int Lambda_G_grid_L2_min, Lambda_G_grid_L2_max, Lambda_G2_grid_size;
     Mat_9_Complex_doub Bmat, Amat;
@@ -169,6 +181,9 @@ public:
     complex<double> Total_QuantEnergy, Total_ClassEnergy;
 
     Mat_1_doub Eigenvalues_ordered;
+
+    Mat_1_intpair Possible_k1_m_q, Possible_k2_p_q;
+
 //------------------
     
     double kx_, ky_;
@@ -990,7 +1005,7 @@ void Hamiltonian::Calculate_RealSpace_OParams_new3(string filename){
 
 
     int M1, M2; //no. of slices of one moire unit cell
-    M1=10;M2=10;
+    M1=12;M2=12;
     int m1_max, m1_min, m2_max, m2_min; //range for full 2d lattice
     m1_max = M1*l1_;m1_min=0;
     m2_max = M2*l1_;m2_min=0;
@@ -1124,9 +1139,12 @@ void Hamiltonian::Calculate_RealSpace_OParams_new3(string filename){
     }}}}}}}}
 
 
+    complex<double> Sum_density, Sum_Sz, Sum_Sx, Sum_Sy;
 
     complex<double> density_, Sz_, Sx_, Sy_;
 
+
+    Sum_density=0; Sum_Sz=0; Sum_Sx=0; Sum_Sy=0;
     for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
     string filename_new = "layer_"+to_string(layer)+"_"+filename;
     ofstream fileout(filename_new.c_str());
@@ -1193,10 +1211,20 @@ void Hamiltonian::Calculate_RealSpace_OParams_new3(string filename){
 
     fileout<<m1<<"  "<<m2<<"  "<<rx<<"  "<<ry<<"  "<<density_.real()<<"  "<<Sz_.real()<<"  "<<Sx_.real()<<"  "<<Sy_.real()<<
     "  "<<density_.imag()<<"  "<<Sz_.imag()<<"  "<<Sx_.imag()<<"  "<<Sy_.imag()<<endl;
+    Sum_density +=density_;
+    Sum_Sz +=Sz_;
+    Sum_Sx +=Sx_;
+    Sum_Sy +=Sy_;
     }
 
     fileout<<endl;
     }}
+
+
+    cout<<"Real space Total density = "<<Sum_density<<endl;
+    cout<<"Real space Total Sz = "<<Sum_Sz<<endl;
+    cout<<"Real space Total Sx = "<<Sum_Sx<<endl;
+    cout<<"Real space Total Sy = "<<Sum_Sy<<endl;
 }
 
 
@@ -2032,7 +2060,7 @@ double Hamiltonian::chemicalpotential(double muin,double Particles){
 double Hamiltonian::V_int(double q_val){
 
     double val;
-    if(q_val>0.0001){
+    if(q_val>0.00001){
     val = (2.0*PI*10000000.0*tanh(q_val*d_gate))/(4.0*PI*Parameters_.eps_DE*55.263494*q_val);
     }
     else{
@@ -2098,6 +2126,45 @@ string file_Int="Interation_spins"+to_string(spin1)+"_"+to_string(spin2)+"_bands
 
 }
 
+
+
+void Hamiltonian::Print_Interaction_value3(){
+
+for(int spin1=0;spin1<2;spin1++){
+for(int spin2=0;spin2<2;spin2++){
+
+    for(int band1=0;band1<Nbands;band1++){
+    for(int band2=0;band2<Nbands;band2++){
+    for(int band3=0;band3<Nbands;band3++){
+    for(int band4=0;band4<Nbands;band4++){
+
+        string file_Int="Interation_spins"+to_string(spin1)+"_"+to_string(spin2)+"_bands_"+to_string(band1)+"_"+
+                        to_string(band2)+"_"+to_string(band3)+"_"+to_string(band4)+
+                        ".txt";
+         ofstream fl_Int_out(file_Int.c_str());
+         fl_Int_out<<"#k1(=k1_1+k1_2*l1_)   k2    q  Interaction.real()  Interaction.imag()"<<endl;
+
+        for(int k1_ind=0;k1_ind<ns_;k1_ind++){ //ns_
+        for(int k2_ind=0;k2_ind<ns_;k2_ind++){
+        for(int q_ind=0;q_ind<ns_;q_ind++){
+            fl_Int_out<<k1_ind<<"  "<<k2_ind<<"  "<<q_ind<< "   "<<Interaction_val[spin1][spin2][band1][band2][band3][band4][k1_ind][k2_ind][q_ind].real()<<"  "
+                                                <<Interaction_val[spin1][spin2][band1][band2][band3][band4][k1_ind][k2_ind][q_ind].imag()<<endl;
+        }
+        }
+         fl_Int_out<<endl;
+        }
+    }
+    }
+    }
+    }
+
+
+}
+}
+
+
+}
+
 void Hamiltonian::Print_Interaction_value2(int k1_ind, int k2_ind){
 
 int q_ind;
@@ -2141,6 +2208,477 @@ string file_Int="Interation_spins"+to_string(spin1)+"_"+to_string(spin2)+"_bands
 }
 
 
+
+
+void Hamiltonian::Print_HF_Band_Projected_Interaction(){
+
+
+
+    complex<double> W_val;
+    int k1_1,k1_2, k2_1, k2_2, q_1, q_2;
+
+    int k1_1_minus_q1, k1_2_minus_q2, k1_minus_q;
+    int k1_1_minus_q1_temp, k1_2_minus_q2_temp;
+
+    int k2_1_plus_q1, k2_2_plus_q2, k2_plus_q;
+    int k2_1_plus_q1_temp, k2_2_plus_q2_temp;
+
+    int G1_ind_temp, G2_ind_temp;
+    int k1_minus_q_SL, k1_minus_q_ind;
+    int k2_plus_q_SL, k2_plus_q_ind;
+
+    int k2_SL, k2_ind, k1_SL, k1_ind;
+    int col_val_1,col_val_2,col_val_3,col_val_4;
+
+
+
+    string fileout_str="HF_Band_projected_Interaction_bands_2_3.txt";
+    ofstream fileout(fileout_str.c_str());
+    fileout<<"#m1   m2   m3  m4 spin  spin_p   k1  k2  q   W(k1,k2k,q).real   W().imag"<<endl;
+
+
+    //m=2 is spin=0
+    for(int m1=2;m1<=3;m1++){
+    for(int m2=2;m2<=3;m2++){
+        for(int m3=2;m3<=3;m3++){
+            for(int m4=2;m4<=3;m4++){
+
+        for(int spin=0;spin<2;spin++){
+            for(int spin_p=0;spin_p<2;spin_p++){
+
+                for(int k1=0;k1<ns_;k1++){
+                k1_1 = Coordinates_.indx_cellwise(k1);
+                k1_2 = Coordinates_.indy_cellwise(k1);
+                k1_SL = Inverse_kSublattice_mapping[k1].first;
+                k1_ind = Inverse_kSublattice_mapping[k1].second;
+
+                for(int k2=0;k2<ns_;k2++){
+                    k2_1 = Coordinates_.indx_cellwise(k2);
+                    k2_2 = Coordinates_.indy_cellwise(k2);
+                    k2_SL = Inverse_kSublattice_mapping[k2].first;
+                    k2_ind = Inverse_kSublattice_mapping[k2].second;
+
+                for(int q=0;q<ns_;q++){
+                    fileout<<m1<<"  "<<m2<<"   "<<m3<<"   "<<m4<<"  "<<spin<<"  "<<spin_p<<"  "<<k1<<"  "<<k2<<"  "<<q<<"  ";
+
+                    q_1 = Coordinates_.indx_cellwise(q);
+                    q_2 = Coordinates_.indy_cellwise(q);
+
+                    k1_1_minus_q1_temp = k1_1 - q_1;
+                    k1_2_minus_q2_temp = k1_2 - q_2;
+                    Folding_to_BrillouinZone(k1_1_minus_q1_temp, k1_2_minus_q2_temp, k1_1_minus_q1, k1_2_minus_q2, G1_ind_temp, G2_ind_temp);
+                    k1_minus_q = k1_1_minus_q1 + k1_2_minus_q2*l1_;
+                    k1_minus_q_SL = Inverse_kSublattice_mapping[k1_minus_q].first;
+                    k1_minus_q_ind = Inverse_kSublattice_mapping[k1_minus_q].second;
+
+                    k2_1_plus_q1_temp = k2_1 + q_1;
+                    k2_2_plus_q2_temp = k2_2 + q_2;
+                    Folding_to_BrillouinZone(k2_1_plus_q1_temp, k2_2_plus_q2_temp, k2_1_plus_q1, k2_2_plus_q2, G1_ind_temp, G2_ind_temp);
+                    k2_plus_q = k2_1_plus_q1 + k2_2_plus_q2*l1_;
+                    k2_plus_q_SL = Inverse_kSublattice_mapping[k2_plus_q].first;
+                    k2_plus_q_ind = Inverse_kSublattice_mapping[k2_plus_q].second;
+
+
+
+                W_val=0.0;
+                int n_min=0;
+                int n_max=Nbands;
+                for(int n1=n_min;n1<n_max;n1++){
+                    for(int n2=n_min;n2<n_max;n2++){
+                        for(int n3=n_min;n3<n_max;n3++){
+                            for(int n4=n_min;n4<n_max;n4++){
+
+                 col_val_1 = k1_minus_q_ind +
+                 k_sublattices[k1_minus_q_SL].size()*n1 +
+                 k_sublattices[k1_minus_q_SL].size()*Nbands*spin;
+
+                 col_val_2 = k2_plus_q_ind +
+                 k_sublattices[k2_plus_q_SL].size()*n2 +
+                 k_sublattices[k2_plus_q_SL].size()*Nbands*spin_p;
+
+                 col_val_3 = k2_ind +
+                 k_sublattices[k2_SL].size()*n3 +
+                 k_sublattices[k2_SL].size()*Nbands*spin_p;
+
+                 col_val_4 = k1_ind +
+                 k_sublattices[k1_SL].size()*n4 +
+                 k_sublattices[k1_SL].size()*Nbands*spin;
+
+                W_val += (1.0/(2.0*Area))*Interaction_val[spin][spin_p][n1][n2][n3][n4][k1][k2][q]*
+                        conj(EigVectors[k1_minus_q_SL](col_val_1,m1))*
+                        conj(EigVectors[k2_plus_q_SL](col_val_2,m2))*
+                        EigVectors[k2_SL](col_val_3,m3)*
+                        EigVectors[k1_SL](col_val_4,m4);
+
+
+                            }
+                        }
+                    }
+                }
+
+                //fileout<<0.0<<"  "<<0.0<<endl;
+                fileout<<W_val.real()<<"  "<<W_val.imag()<<endl;
+
+
+                }}}
+            }
+        }
+
+    }}}}
+
+
+
+    for(int m=2;m<=3;m++){
+    string fileout_str="HF_Band_Eigenvalues_band" + to_string(m) + ".txt";
+    ofstream fileout(fileout_str.c_str());
+    fileout<<"k  E(k)"<<endl;
+
+
+    for(int k1=0;k1<ns_;k1++){
+    k1_1 = Coordinates_.indx_cellwise(k1);
+    k1_2 = Coordinates_.indy_cellwise(k1);
+    k1_SL = Inverse_kSublattice_mapping[k1].first;
+    k1_ind = Inverse_kSublattice_mapping[k1].second;
+
+    fileout<<k1<<"  "<<EigValues[k1_SL][m]<<endl;
+
+    }
+    }
+
+}
+
+
+void Hamiltonian::Print_HF_Band_Projected_Interaction_TR_and_Inversion_imposed(){
+
+
+
+    Mat_5_Complex_doub W_val_mat;
+    //[spin][spin_p][k1][k2][q]
+    W_val_mat.resize(2);
+    for(int spin=0;spin<2;spin++){
+    W_val_mat[spin].resize(2);
+    for(int spin_p=0;spin_p<2;spin_p++){
+      W_val_mat[spin][spin_p].resize(ns_);
+      for(int k1=0;k1<ns_;k1++){
+        W_val_mat[spin][spin_p][k1].resize(ns_);
+       for(int k2=0;k2<ns_;k2++){
+        W_val_mat[spin][spin_p][k1][k2].resize(ns_);
+       }
+          }
+    }
+    }
+
+    Mat_5_Complex_doub W_val_mat2;
+    //[spin][spin_p][k1][k2][q]
+    W_val_mat2.resize(2);
+    for(int spin=0;spin<2;spin++){
+    W_val_mat2[spin].resize(2);
+    for(int spin_p=0;spin_p<2;spin_p++){
+      W_val_mat2[spin][spin_p].resize(ns_);
+      for(int k1=0;k1<ns_;k1++){
+        W_val_mat2[spin][spin_p][k1].resize(ns_);
+       for(int k2=0;k2<ns_;k2++){
+        W_val_mat2[spin][spin_p][k1][k2].resize(ns_);
+       }
+          }
+    }
+    }
+
+
+    Mat_5_Complex_doub W_val_mat3;
+    //[spin][spin_p][k1][k2][q]
+    W_val_mat3.resize(2);
+    for(int spin=0;spin<2;spin++){
+    W_val_mat3[spin].resize(2);
+    for(int spin_p=0;spin_p<2;spin_p++){
+      W_val_mat3[spin][spin_p].resize(ns_);
+      for(int k1=0;k1<ns_;k1++){
+        W_val_mat3[spin][spin_p][k1].resize(ns_);
+       for(int k2=0;k2<ns_;k2++){
+        W_val_mat3[spin][spin_p][k1][k2].resize(ns_);
+       }
+          }
+    }
+    }
+
+
+    complex<double> W_val;
+    int k1_1,k1_2, k2_1, k2_2, q_1, q_2;
+
+    int mk1_1, mk1_2, mk2_1, mk2_2, mq_1, mq_2;
+    int mk1, mk2, mq;
+
+
+    int k1_1_minus_q1, k1_2_minus_q2, k1_minus_q;
+    int k1_1_minus_q1_temp, k1_2_minus_q2_temp;
+
+    int k2_1_plus_q1, k2_2_plus_q2, k2_plus_q;
+    int k2_1_plus_q1_temp, k2_2_plus_q2_temp;
+
+    int G1_ind_temp, G2_ind_temp;
+    int k1_minus_q_SL, k1_minus_q_ind;
+    int k2_plus_q_SL, k2_plus_q_ind;
+
+    int k2_SL, k2_ind, k1_SL, k1_ind;
+    int col_val_1,col_val_2,col_val_3,col_val_4;
+
+    string fileout_str="HF_Band_projected_Interaction_bands_2_3_TR_and_Inversion_imposed.txt";
+    ofstream fileout(fileout_str.c_str());
+    fileout<<"#m1   m2   m3  m4 spin  spin_p   k1  k2  q   W(k1,k2k,q).real   W().imag"<<endl;
+
+
+    //m=2 is spin=0
+    int m1, m2, m3 ,m4;
+
+        for(int spin=0;spin<2;spin++){ //m1, m4
+            m1 = spin+2;
+            m4=m1;
+            for(int spin_p=0;spin_p<2;spin_p++){ //m2, m3
+            m2 = spin_p +2;
+            m3=m2;
+
+                for(int k1=0;k1<ns_;k1++){
+                k1_1 = Coordinates_.indx_cellwise(k1);
+                k1_2 = Coordinates_.indy_cellwise(k1);
+                k1_SL = Inverse_kSublattice_mapping[k1].first;
+                k1_ind = Inverse_kSublattice_mapping[k1].second;
+
+//                mk1_1 = (-k1_1 + l1_)%l1_;
+//                mk1_2 = (-k1_2 + l2_)%l2_;
+//                mk1 =  (mk1_1 + l1_*mk1_2);
+
+                for(int k2=0;k2<ns_;k2++){
+                    k2_1 = Coordinates_.indx_cellwise(k2);
+                    k2_2 = Coordinates_.indy_cellwise(k2);
+                    k2_SL = Inverse_kSublattice_mapping[k2].first;
+                    k2_ind = Inverse_kSublattice_mapping[k2].second;
+
+//                    mk2_1 = (-k2_1 + l1_)%l1_;
+//                    mk2_2 = (-k2_2 + l2_)%l2_;
+//                    mk2 =  (mk2_1 + l1_*mk2_2);
+
+                for(int q=0;q<ns_;q++){
+                   // fileout<<m1<<"  "<<m2<<"   "<<m3<<"   "<<m4<<"  "<<spin<<"  "<<spin_p<<"  "<<k1<<"  "<<k2<<"  "<<q<<"  ";
+
+                    q_1 = Coordinates_.indx_cellwise(q);
+                    q_2 = Coordinates_.indy_cellwise(q);
+
+//                    mq_1 = (-q_1 + l1_)%l1_;
+//                    mq_2 = (-q_2 + l2_)%l2_;
+//                    mq =  (mq_1 + l1_*mq_2);
+
+                    k1_1_minus_q1_temp = k1_1 - q_1;
+                    k1_2_minus_q2_temp = k1_2 - q_2;
+                    Folding_to_BrillouinZone(k1_1_minus_q1_temp, k1_2_minus_q2_temp, k1_1_minus_q1, k1_2_minus_q2, G1_ind_temp, G2_ind_temp);
+                    k1_minus_q = k1_1_minus_q1 + k1_2_minus_q2*l1_;
+                    k1_minus_q_SL = Inverse_kSublattice_mapping[k1_minus_q].first;
+                    k1_minus_q_ind = Inverse_kSublattice_mapping[k1_minus_q].second;
+
+                    k2_1_plus_q1_temp = k2_1 + q_1;
+                    k2_2_plus_q2_temp = k2_2 + q_2;
+                    Folding_to_BrillouinZone(k2_1_plus_q1_temp, k2_2_plus_q2_temp, k2_1_plus_q1, k2_2_plus_q2, G1_ind_temp, G2_ind_temp);
+                    k2_plus_q = k2_1_plus_q1 + k2_2_plus_q2*l1_;
+                    k2_plus_q_SL = Inverse_kSublattice_mapping[k2_plus_q].first;
+                    k2_plus_q_ind = Inverse_kSublattice_mapping[k2_plus_q].second;
+
+
+
+                W_val=0.0;
+                int n_min=0;
+                int n_max=Nbands;
+                for(int n1=n_min;n1<n_max;n1++){
+                    for(int n2=n_min;n2<n_max;n2++){
+                        for(int n3=n_min;n3<n_max;n3++){
+                            for(int n4=n_min;n4<n_max;n4++){
+
+                 col_val_1 = k1_minus_q_ind +
+                 k_sublattices[k1_minus_q_SL].size()*n1 +
+                 k_sublattices[k1_minus_q_SL].size()*Nbands*spin;
+
+                 col_val_2 = k2_plus_q_ind +
+                 k_sublattices[k2_plus_q_SL].size()*n2 +
+                 k_sublattices[k2_plus_q_SL].size()*Nbands*spin_p;
+
+                 col_val_3 = k2_ind +
+                 k_sublattices[k2_SL].size()*n3 +
+                 k_sublattices[k2_SL].size()*Nbands*spin_p;
+
+                 col_val_4 = k1_ind +
+                 k_sublattices[k1_SL].size()*n4 +
+                 k_sublattices[k1_SL].size()*Nbands*spin;
+
+                W_val += (1.0/(2.0*Area))*Interaction_val[spin][spin_p][n1][n2][n3][n4][k1][k2][q]
+                        *conj(EigVectors[k1_minus_q_SL](col_val_1,m1))*
+                        conj(EigVectors[k2_plus_q_SL](col_val_2,m2))*
+                        EigVectors[k2_SL](col_val_3,m3)*
+                        EigVectors[k1_SL](col_val_4,m4);
+
+
+                            }
+                        }
+                    }
+                }
+
+
+                //spin<<"  "<<spin_p<<"  "<<k1<<"  "<<k2<<"  "<<q
+                W_val_mat[spin][spin_p][k1][k2][q]=W_val;
+                //fileout<<0.0<<"  "<<0.0<<endl;
+                //fileout<<W_val.real()<<"  "<<W_val.imag()<<endl;
+
+//                if(spin==0 && spin_p==0){
+//                fileout<<m1+1<<"  "<<m2+1<<"   "<<m3+1<<"   "<<m4+1<<"  "<<spin+1<<"  "<<spin_p+1<<"  ";
+//                int mk1_1 = (-k1_1 + l1_)%l1_;
+//                int mk1_2 = (-k1_2 + l2_)%l2_;
+//                int mk2_1 = (-k2_1 + l1_)%l1_;
+//                int mk2_2 = (-k2_2 + l2_)%l2_;
+//                int mk1 = mk1_1 + l1_*mk1_2;
+//                int mk2 = mk2_1 + l1_*mk2_2;
+//                fileout<<mk2<<"  "<<mk1<<"  "<<q<<"  "<<W_val.real()<<"  "<<-1.0*W_val.imag()<<endl;
+//                }
+
+//                if(spin==0 && spin_p==1){ //2 3 3 2 0 1
+//                fileout<<3<<"  "<<2<<"   "<<2<<"   "<<3<<"  "<<spin_p<<"  "<<spin<<"  ";
+//                int mk1_1 = (-k1_1 + l1_)%l1_;
+//                int mk1_2 = (-k1_2 + l2_)%l2_;
+//                int mk2_1 = (-k2_1 + l1_)%l1_;
+//                int mk2_2 = (-k2_2 + l2_)%l2_;
+//                int mq_1 = (-q_1 + l1_)%l1_;
+//                int mq_2 = (-q_2 + l2_)%l2_;
+//                int mk1 = mk1_1 + l1_*mk1_2;
+//                int mk2 = mk2_1 + l1_*mk2_2;
+//                int mq = mq_1 + l1_*mq_2;
+//                fileout<<mk1<<"  "<<mk2<<"  "<<mq<<"  "<<W_val.real()<<"  "<<-1.0*W_val.imag()<<endl;
+//                }
+
+                }}}
+            }
+        }
+
+
+
+        for(int k1=0;k1<ns_;k1++){
+            k1_1 = Coordinates_.indx_cellwise(k1);
+            k1_2 = Coordinates_.indy_cellwise(k1);
+            mk1_1 = (-k1_1 + l1_)%l1_;
+            mk1_2 = (-k1_2 + l2_)%l2_;
+            mk1 =  (mk1_1 + l1_*mk1_2);
+         for(int k2=0;k2<ns_;k2++){
+             k2_1 = Coordinates_.indx_cellwise(k2);
+             k2_2 = Coordinates_.indy_cellwise(k2);
+             mk2_1 = (-k2_1 + l1_)%l1_;
+             mk2_2 = (-k2_2 + l2_)%l2_;
+             mk2 =  (mk2_1 + l1_*mk2_2);
+        for(int q=0;q<ns_;q++){
+        W_val_mat2[0][0][k1][k2][q]=W_val_mat[0][0][k1][k2][q];
+        W_val_mat2[1][1][mk2][mk1][q]=conj(W_val_mat[0][0][k1][k2][q]);
+        W_val_mat2[0][1][mk2][mk1][q]=0.5*(conj(W_val_mat[0][1][k1][k2][q]) +
+                                        W_val_mat[0][1][mk2][mk1][q]);
+        }}}
+
+
+        for(int k1=0;k1<ns_;k1++){
+            k1_1 = Coordinates_.indx_cellwise(k1);
+            k1_2 = Coordinates_.indy_cellwise(k1);
+            mk1_1 = (-k1_1 + l1_)%l1_;
+            mk1_2 = (-k1_2 + l2_)%l2_;
+            mk1 =  (mk1_1 + l1_*mk1_2);
+
+         for(int k2=0;k2<ns_;k2++){
+             k2_1 = Coordinates_.indx_cellwise(k2);
+             k2_2 = Coordinates_.indy_cellwise(k2);
+             mk2_1 = (-k2_1 + l1_)%l1_;
+             mk2_2 = (-k2_2 + l2_)%l2_;
+             mk2 =  (mk2_1 + l1_*mk2_2);
+
+        for(int q=0;q<ns_;q++){
+            q_1 = Coordinates_.indx_cellwise(q);
+            q_2 = Coordinates_.indy_cellwise(q);
+            mq_1 = (-q_1 + l1_)%l1_;
+            mq_2 = (-q_2 + l2_)%l2_;
+            mq =  (mq_1 + l1_*mq_2);
+        W_val_mat2[1][0][k1][k2][q]=conj(W_val_mat2[0][1][mk1][mk2][mq]);
+        }}}
+
+
+
+        //Hermiticity
+        for(int spin=0;spin<2;spin++){ //m1, m4
+            for(int spin_p=0;spin_p<2;spin_p++){
+        for(int k1=0;k1<ns_;k1++){
+            k1_1 = Coordinates_.indx_cellwise(k1);
+            k1_2 = Coordinates_.indy_cellwise(k1);
+        for(int k2=0;k2<ns_;k2++){
+            k2_1 = Coordinates_.indx_cellwise(k2);
+            k2_2 = Coordinates_.indy_cellwise(k2);
+        for(int q=0;q<ns_;q++){
+            q_1 = Coordinates_.indx_cellwise(q);
+            q_2 = Coordinates_.indy_cellwise(q);
+
+            k1_1_minus_q1 = (k1_1 - q_1 + l1_)%l1_;
+            k1_2_minus_q2 = (k1_2 - q_2 + l2_)%l2_;
+            k1_minus_q = k1_1_minus_q1 + k1_2_minus_q2*l1_;
+
+            k2_1_plus_q1 = (k2_1 + q_1)%l1_;
+            k2_2_plus_q2 = (k2_2 + q_2)%l2_;
+            k2_plus_q = k2_1_plus_q1 + k2_2_plus_q2*l1_;
+
+            mq_1 = (-q_1 + l1_)%l1_;
+            mq_2 = (-q_2 + l2_)%l2_;
+            mq =  (mq_1 + l1_*mq_2);
+
+           W_val_mat3[spin][spin_p][k1][k2][q] = 0.5*(W_val_mat2[spin][spin_p][k1][k2][q] +
+                                                conj(W_val_mat2[spin][spin_p][k1_minus_q][k2_plus_q][mq]));
+
+
+        }}}
+        }}
+
+
+        for(int spin=0;spin<2;spin++){ //m1, m4
+            for(int spin_p=0;spin_p<2;spin_p++){
+                //if(spin!=spin_p){
+        for(int k1=0;k1<ns_;k1++){
+        for(int k2=0;k2<ns_;k2++){
+        for(int q=0;q<ns_;q++){
+    fileout<<spin+2<<"  "<<spin_p+2<<"   "<<spin_p+2<<"   "<<spin+2<<"  "<<spin<<"  "<<spin_p<<"  "<<k1<<"  "<<k2<<"  "<<q<<"  "<<W_val_mat3[spin][spin_p][k1][k2][q].real()<<"  "<<W_val_mat3[spin][spin_p][k1][k2][q].imag()<<endl;
+       //}
+        }}}
+        }}
+
+
+
+
+
+
+
+
+    for(int m=2;m<=3;m++){
+    string fileout_str="HF_Band_Eigenvalues_band" + to_string(m) + "_TR_and_Inversion_imposed.txt";
+    ofstream fileout(fileout_str.c_str());
+    fileout<<"k  E(k)"<<endl;
+
+
+    for(int k1=0;k1<ns_;k1++){
+    k1_1 = Coordinates_.indx_cellwise(k1);
+    k1_2 = Coordinates_.indy_cellwise(k1);
+    k1_SL = Inverse_kSublattice_mapping[k1].first;
+    k1_ind = Inverse_kSublattice_mapping[k1].second;
+
+
+    //Inversion symmetry is imposed
+    int mk1_1 = (-k1_1 + l1_)%l1_;
+    int mk1_2 = (-k1_2 + l2_)%l2_;
+    int mk1 = mk1_1 + l1_*mk1_2;
+    int mk1_SL = Inverse_kSublattice_mapping[mk1].first;
+    int mk1_ind = Inverse_kSublattice_mapping[mk1].second;
+
+    fileout<<k1<<"  "<<0.5*(EigValues[k1_SL][m] + EigValues[mk1_SL][m])<<endl;
+
+    }
+    }
+
+}
+
 void Hamiltonian::Save_InteractionVal(){
 
     Interaction_val.resize(2);
@@ -2162,14 +2700,52 @@ void Hamiltonian::Save_InteractionVal(){
     Interaction_val[spin][spin_p][band1][band2][band3][band4][k1][k2].resize(ns_);
     for(int q=0;q<ns_;q++){
     Interaction_val[spin][spin_p][band1][band2][band3][band4][k1][k2][q] = 
-    Interaction_value(spin,spin_p,band1,band2,band3,band4,k1,k2,q);
+    Interaction_value_new(spin,spin_p,band1,band2,band3,band4,k1,k2,q);
     }}}
     }}}}
     }}
 
 }
 
+
+complex<double> Hamiltonian::Interaction_value_new(int spin, int spin_p, int band1, int band2, int band3, int band4, int k1_ind, int k2_ind, int q_ind){
+
+
+    int temp_int;
+    int k1_1_ind, k1_2_ind, k2_1_ind, k2_2_ind, g1_ind, g2_ind;
+    int q_ind1, q_ind2, k1_ind1, k1_ind2, k2_ind1, k2_ind2;
+    int q_ind1_new, q_ind2_new;
+    q_ind1=Coordinates_.indx_cellwise(q_ind);q_ind2=Coordinates_.indy_cellwise(q_ind);
+    k1_ind1=Coordinates_.indx_cellwise(k1_ind);k1_ind2=Coordinates_.indy_cellwise(k1_ind);
+    k2_ind1=Coordinates_.indx_cellwise(k2_ind);k2_ind2=Coordinates_.indy_cellwise(k2_ind);
+    double qpGx_temp, qpGy_temp;
+    complex<double> val;
+    val=0.0;
+    for(int g_ind1=Lambda_G_grid_L1_min;g_ind1<=Lambda_G_grid_L1_max;g_ind1++){
+    g1_ind = g_ind1 - Lambda_G_grid_L1_min;
+    for(int g_ind2=Lambda_G_grid_L2_min;g_ind2<=Lambda_G_grid_L2_max;g_ind2++){
+    g2_ind = g_ind2 - Lambda_G_grid_L2_min;
+
+    HamiltonianCont_.Getting_kx_ky_in_Primitive_BZ(qpGx_temp, qpGy_temp, q_ind1, q_ind2, q_ind1_new, q_ind2_new);
+
+    qpGx_temp = qpGx_temp +
+                (2.0*PI/Parameters_.a_moire)*(g_ind1*(1.0/sqrt(3)) + g_ind2*(1.0/sqrt(3)));
+    qpGy_temp = qpGy_temp +
+                (2.0*PI/Parameters_.a_moire)*(g_ind1*(-1.0) + g_ind2*(1.0));
+
+
+    val += V_int(sqrt( (qpGx_temp*qpGx_temp) + (qpGy_temp*qpGy_temp) ) ) *
+            LambdaPBZ_k1_m_q[spin][band1][band4][k1_ind1][k1_ind2][q_ind1][q_ind2][g1_ind][g2_ind]*
+            conj(LambdaPBZ_k2_p_q[spin_p][band3][band2][k2_ind1][k2_ind2][q_ind1][q_ind2][g1_ind][g2_ind]);
+
+    }}
+
+    return val;
+}
+
 complex<double> Hamiltonian::Interaction_value(int spin, int spin_p, int band1, int band2, int band3, int band4, int k1_ind, int k2_ind, int q_ind){
+
+
 
 int temp_int;
 int k1_1_ind, k1_2_ind, k2_1_ind, k2_2_ind, g1_ind, g2_ind;
@@ -2191,6 +2767,14 @@ g2_ind = g_ind2 - Lambda_G_grid_L2_min;
 
 //kx_=(2.0*PI/Parameters_.a_moire)*((n1)*(1.0/(sqrt(3)*L1_))  +  (n2)*(1.0/(sqrt(3)*L2_)));
 //ky_=(2.0*PI/Parameters_.a_moire)*((n1)*(-1.0/(L1_))  +  (n2)*(1.0/(L2_)));
+
+//HamiltonianCont_.Getting_kx_ky_in_Primitive_BZ(qpGx_temp, qpGy_temp, q_ind1, q_ind2);
+
+//qpGx_temp = qpGx_temp +
+//            (2.0*PI/Parameters_.a_moire)*(g_ind1*(1.0/sqrt(3)) + g_ind2*(1.0/sqrt(3)));
+//qpGy_temp = qpGy_temp +
+//            (2.0*PI/Parameters_.a_moire)*(g_ind1*(-1.0) + g_ind2*(1.0));
+
 qpGx_temp = (2.0*PI/Parameters_.a_moire)*(
             (q_ind1)*(1.0/(sqrt(3)*l1_))  +  (q_ind2)*(1.0/(sqrt(3)*l2_)) //q
             + g_ind1*(1.0/sqrt(3)) + g_ind2*(1.0/sqrt(3)) //G
@@ -2337,6 +2921,18 @@ void Hamiltonian::Create_k_sublattices(){
 }
 
 
+int Hamiltonian::Get_maximum_comp(Mat_1_Complex_doub Vec_){
+
+  int max_comp=0;
+  for(int i=0;i<Vec_.size();i++){
+      if(abs(Vec_[i])>abs(Vec_[max_comp])){
+        max_comp=i;
+      }
+  }
+
+  return max_comp;
+}
+
 void Hamiltonian::Initialize(){
 
     //lowest Nbands no of bands used for Hartree-Fock in hole language
@@ -2436,26 +3032,113 @@ void Hamiltonian::Initialize(){
     
 
    assert(HamiltonianCont_.mbz_factor==1);
-   int comp_norm;
+   int comp_norm, comp_norm_PBZ;
    comp_norm=HamiltonianCont_.Coordinates_.Nbasis((G_grid_L1/2), (G_grid_L2/2), 0);
    //comp_norm=HamiltonianCont_.Coordinates_.Nbasis(0, 0, 0);
    //comp_norm=1.0; 
-    complex<double> phase_;
+    complex<double> phase_, phase_PBZ;
     for(int spin=0;spin<2;spin++){
           for(int n=0;n<Nbands;n++){
             for(int i1=0;i1<l1_;i1++){  //k_ind
             for(int i2=0;i2<l2_;i2++){
                 
+               //Why this does not work for MoTe2 homobilayer??
+              //  comp_norm = Get_maximum_comp(HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)]);
+              //  comp_norm_PBZ = Get_maximum_comp(HamiltonianCont_.BlochStates_PBZ[spin][n][i1+i2*(l1_)]);
+
+                comp_norm_PBZ=comp_norm;
+
                 phase_= conj(HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)][comp_norm])/
                         (abs(HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)][comp_norm]));
-              for(int comp=0;comp<G_grid_L1*G_grid_L2*Parameters_.max_layer_ind;comp++){
+
+                phase_PBZ= conj(HamiltonianCont_.BlochStates_PBZ[spin][n][i1+i2*(l1_)][comp_norm_PBZ])/
+                        (abs(HamiltonianCont_.BlochStates_PBZ[spin][n][i1+i2*(l1_)][comp_norm_PBZ]));
+
+
+               // phase_=1.0;
+                //phase_PBZ=1.0;
+                for(int comp=0;comp<G_grid_L1*G_grid_L2*Parameters_.max_layer_ind;comp++){
                 BlochStates[spin][n][i1+i2*l1_][comp]=phase_*HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)][comp];
+                HamiltonianCont_.BlochStates_PBZ[spin][n][i1+i2*(l1_)][comp] = phase_PBZ*HamiltonianCont_.BlochStates_PBZ[spin][n][i1+i2*(l1_)][comp];
               }
             }
             }
           }
         }
+
+
+
+
+    //Imposing T-Reversal symmetry in Bloch states, because otherwise phase is random
+    //and in Interaction matrix it is hard to investigate the TR symmetry
+    //This should not change the final results.
+
+    //bloch(dn,k,G)=conj(bloch(up,-k,-G))
+    /*
+    int m_g1_ind, m_g2_ind;
+         int m_g_ind1, m_g_ind2;
+         int g_ind1, g_ind2;
+         int comp_up, comp_dn;
+         int i1_new, i2_new;
+         int m_i1_temp, m_i2_temp;
+         int m_i1, m_i2;
+         int g1_temp, g2_temp;
+         int g1_temp2, g2_temp2;
+         int g_off1, g_off2;
+         int i1_val, i2_val;
+
+          for(int n=0;n<Nbands;n++){
+            for(int i1=0;i1<l1_;i1++){  //k_ind
+                for(int i2=0;i2<l2_;i2++){
+                HamiltonianCont_.Getting_n1_n2_in_Primitive_BZ(i1,i2,i1_val, i2_val, g1_temp, g2_temp);
+
+                Folding_to_BrillouinZone(-i1_val, -i2_val,
+                                        m_i1_temp, m_i2_temp,
+                                         g1_temp, g2_temp);
+
+               HamiltonianCont_.Getting_n1_n2_in_Primitive_BZ(m_i1_temp,m_i2_temp,
+                                                               m_i1,m_i2,
+                                                               g1_temp2, g2_temp2);
+
+                 g_off1=g1_temp - g1_temp2;
+                 g_off2=g2_temp - g2_temp2;
+
+
+
+                for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
+                    for(int g1_ind=0;g1_ind<G_grid_L1;g1_ind++){
+                    for(int g2_ind=0;g2_ind<G_grid_L2;g2_ind++){
+                    g_ind1 = g1_ind  - (G_grid_L1/2);
+                    g_ind2 = g2_ind  - (G_grid_L2/2);
+                    m_g_ind1 = - g_ind1;
+                    m_g_ind2 = - g_ind2;
+
+                   m_g1_ind= m_g_ind1 + g_off1 + (G_grid_L1/2);
+                   m_g2_ind= m_g_ind2 + g_off2 +(G_grid_L2/2);
+
+                   //if is used, because grid is not symmeric around 0,0 for even sized grid
+                   if(m_g1_ind<G_grid_L1 && m_g2_ind<G_grid_L2){
+                   comp_dn=HamiltonianCont_.Coordinates_.Nbasis(g1_ind, g2_ind, layer);
+                   comp_up=HamiltonianCont_.Coordinates_.Nbasis(m_g1_ind, m_g2_ind, layer);
+
+                HamiltonianCont_.BlochStates_PBZ[0][n][m_i1_temp+m_i2_temp*(l1_)][comp_up] = conj(HamiltonianCont_.BlochStates_PBZ[1][n][i1+i2*(l1_)][comp_dn]);
+                        }
+                    }
+                    }
+            }
+            }
+          }
+        }
+        */
+
+          //If Interaction_new is used
+          BlochStates = HamiltonianCont_.BlochStates_PBZ;
+
+
     BlochStates_old_ = HamiltonianCont_.BlochStates;
+
+    //PrintBlochStates();
+    //PrintBlochStatesPBZ();
 
     for(int spin=0;spin<2;spin++){
         for(int n=0;n<Nbands;n++){
@@ -2573,6 +3256,7 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
     Lambda_G1_grid_size = Lambda_G_grid_L1_max - Lambda_G_grid_L1_min + 1;
     Lambda_G2_grid_size = Lambda_G_grid_L2_max - Lambda_G_grid_L2_min + 1;
 
+
     LambdaNew_.resize(2);  //[k][q+G]; k is in {-(l-1),(l-1)}; q is in {0,2l-2}; G is in {-G_Grid/2,G_Grid/2}
     for(int spin=0;spin<2;spin++){
         LambdaNew_[spin].resize(Nbands);
@@ -2601,11 +3285,30 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
 
 
 
+    Create_Lambda_PBZ();
+//    PrintFormFactors_PBZ(0, 0, 0);
+//    PrintFormFactors_PBZ(0, 0, 1);
+//    PrintFormFactors_PBZ(1, 0, 1);
+//    PrintFormFactors_PBZ(1, 0, 0);
+//    PrintFormFactors_PBZ(0, 1, 1);
+//    PrintFormFactors_PBZ(0, 1, 0);
 
-    Calculate_FormFactors();
+ //   Calculate_FormFactors();
+//    PrintFormFactors2(0 ,0, 0);
+//    PrintFormFactors2(0 ,0, 1);
+//    PrintFormFactors2(1 ,0, 1);
+//    PrintFormFactors2(1 ,0, 0);
+//    PrintFormFactors2(0 ,1, 1);
+//    PrintFormFactors2(0 ,1, 0);
+
     cout<<"Saving Interaction val"<<endl;
     Save_InteractionVal();
     cout<<"Interaction val completed"<<endl;
+
+
+
+    //Print_Interaction_value3();
+
 
     cout<<"Started:  Creating Amat and Bmat"<<endl;
     Create_Amat_and_Bmat();
@@ -2629,8 +3332,427 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
 
 } // ----------
 
+bool Hamiltonian::Present(string type, pair_int k_temp){
+    bool present_=false;
+
+    if(type=="k1_m_q"){
+        for(int i=0;i<Possible_k1_m_q.size();i++){
+            if(Possible_k1_m_q[i].first == k_temp.first
+               || Possible_k1_m_q[i].second == k_temp.second ){
+            present_=true;
+            break;
+            }
+        }
+    }
+
+    if(type=="k2_p_q"){
+        for(int i=0;i<Possible_k2_p_q.size();i++){
+            if(Possible_k2_p_q[i].first == k_temp.first
+               || Possible_k2_p_q[i].second == k_temp.second ){
+            present_=true;
+            break;
+            }
+        }
+    }
+
+    return present_;
+
+}
+
+void Hamiltonian::Create_Lambda_PBZ(){
+
+
+int k1_1_val, k1_2_val;
+int q_1_val, q_2_val;
+/*
+Possible_k1_m_q.clear();
+Possible_k2_p_q.clear();
+
+    for(int k1_1_ind=0;k1_1_ind<l1_;k1_1_ind++){
+        for(int k1_2_ind=0;k1_2_ind<l2_;k1_2_ind++){
+            k1_1_val = HamiltonianCont_.PBZ_map_n1[k1_1_ind][k1_2_ind];
+            k1_2_val = HamiltonianCont_.PBZ_map_n2[k1_1_ind][k1_2_ind];
+
+            for(int q_1_ind=0;q_1_ind<l1_;q_1_ind++){
+                for(int q_2_ind=0;q_2_ind<l2_;q_2_ind++){
+            q_1_val = HamiltonianCont_.PBZ_map_n1[q_1_ind][q_2_ind];
+            q_2_val = HamiltonianCont_.PBZ_map_n2[q_1_ind][q_2_ind];
+
+            pair_int k1_m_q_temp;
+            k1_m_q_temp.first = k1_1_val - q_1_val;
+            k1_m_q_temp.second = k1_2_val - q_2_val;
+            if(!Present("k1_m_q", k1_m_q_temp)){
+            Possible_k1_m_q.push_back(k1_m_q_temp);
+            }
+                }
+            }
+        }
+    }
+
+    for(int k2_1_ind=0;k2_1_ind<l1_;k2_1_ind++){
+        for(int k2_2_ind=0;k2_2_ind<l2_;k2_2_ind++){
+            k2_1_val = HamiltonianCont_.PBZ_map_n1[k2_1_ind][k2_2_ind];
+            k2_2_val = HamiltonianCont_.PBZ_map_n2[k2_1_ind][k2_2_ind];
+
+            for(int q_1_ind=0;q_1_ind<l1_;q_1_ind++){
+                for(int q_2_ind=0;q_2_ind<l2_;q_2_ind++){
+            q_1_val = HamiltonianCont_.PBZ_map_n1[q_1_ind][q_2_ind];
+            q_2_val = HamiltonianCont_.PBZ_map_n2[q_1_ind][q_2_ind];
+
+            pair_int k2_p_q_temp;
+            k2_p_q_temp.first = k2_1_val + q_1_val;
+            k2_p_q_temp.second = k2_2_val + q_2_val;
+            if(!Present("k2_p_q", k2_p_q_temp )){
+            Possible_k2_p_q.push_back(k2_p_q_temp);
+            }
+        }}
+        }}
+
+    */
+
+
+    LambdaPBZ_k1_m_q.resize(2);  //[k-q][k+G];  G is in {-G_Grid/2,G_Grid/2}
+    for(int spin=0;spin<2;spin++){
+        LambdaPBZ_k1_m_q[spin].resize(Nbands);
+        for(int n1=0;n1<Nbands;n1++){
+            LambdaPBZ_k1_m_q[spin][n1].resize(Nbands);
+            for(int n2=0;n2<Nbands;n2++){
+                LambdaPBZ_k1_m_q[spin][n1][n2].resize(l1_);
+              for(int k1_1=0;k1_1<l1_;k1_1++){
+                 LambdaPBZ_k1_m_q[spin][n1][n2][k1_1].resize(l2_);
+                  for(int k1_2=0;k1_2<l2_;k1_2++){
+                LambdaPBZ_k1_m_q[spin][n1][n2][k1_1][k1_2].resize(l1_);
+                for(int q_1=0;q_1<l1_;q_1++){
+                   LambdaPBZ_k1_m_q[spin][n1][n2][k1_1][k1_2][q_1].resize(l2_);
+                   for(int q_2=0;q_2<l2_;q_2++){
+                      LambdaPBZ_k1_m_q[spin][n1][n2][k1_1][k1_2][q_1][q_2].resize(Lambda_G1_grid_size); //min...to...max
+                      for(int g1=0;g1<Lambda_G1_grid_size;g1++){
+                      LambdaPBZ_k1_m_q[spin][n1][n2][k1_1][k1_2][q_1][q_2][g1].resize(Lambda_G2_grid_size); //min...to...max
+                      }
+                }
+              }
+            }
+        }
+    }
+}}
+
+
+    LambdaPBZ_k2_p_q.resize(2);  //[k-q][k+G];  G is in {-G_Grid/2,G_Grid/2}
+    for(int spin=0;spin<2;spin++){
+        LambdaPBZ_k2_p_q[spin].resize(Nbands);
+        for(int n1=0;n1<Nbands;n1++){
+            LambdaPBZ_k2_p_q[spin][n1].resize(Nbands);
+            for(int n2=0;n2<Nbands;n2++){
+                LambdaPBZ_k2_p_q[spin][n1][n2].resize(l1_);
+              for(int k1_1=0;k1_1<l1_;k1_1++){
+                 LambdaPBZ_k2_p_q[spin][n1][n2][k1_1].resize(l2_);
+                  for(int k1_2=0;k1_2<l2_;k1_2++){
+                LambdaPBZ_k2_p_q[spin][n1][n2][k1_1][k1_2].resize(l1_);
+                for(int q_1=0;q_1<l1_;q_1++){
+                   LambdaPBZ_k2_p_q[spin][n1][n2][k1_1][k1_2][q_1].resize(l2_);
+                   for(int q_2=0;q_2<l2_;q_2++){
+                      LambdaPBZ_k2_p_q[spin][n1][n2][k1_1][k1_2][q_1][q_2].resize(Lambda_G1_grid_size); //min...to...max
+                      for(int g1=0;g1<Lambda_G1_grid_size;g1++){
+                      LambdaPBZ_k2_p_q[spin][n1][n2][k1_1][k1_2][q_1][q_2][g1].resize(Lambda_G2_grid_size); //min...to...max
+                      }
+                }
+              }
+            }
+        }
+    }
+}}
+
+
+
+
+
+
+    //LambdaPBZ_k1_m_q[spin][n1][n2][k1_1][k1_2][q_1][q_2][g1][g2]
+
+    for(int spin=0;spin<2;spin++){
+        for(int n1=0;n1<Nbands;n1++){
+            for(int n2=0;n2<Nbands;n2++){
+              for(int k1_1=0;k1_1<l1_;k1_1++){
+                  for(int k1_2=0;k1_2<l2_;k1_2++){
+         k1_1_val = HamiltonianCont_.PBZ_map_n1[k1_1][k1_2];
+         k1_2_val = HamiltonianCont_.PBZ_map_n2[k1_1][k1_2];
+                for(int q_1=0;q_1<l1_;q_1++){
+                   for(int q_2=0;q_2<l2_;q_2++){
+         q_1_val = HamiltonianCont_.PBZ_map_n1[q_1][q_2];
+         q_2_val = HamiltonianCont_.PBZ_map_n2[q_1][q_2];
+
+         int k1_1_m_q_1_val = k1_1_val - q_1_val;
+         int k1_2_m_q_2_val = k1_2_val - q_2_val;
+
+         int k1_1_m_q_1_val_temp, k1_2_m_q_2_val_temp; // in FBZ (0,2pi)
+         int g1_temp, g2_temp;
+
+         int k1_1_m_q_1_val_temp2, k1_2_m_q_2_val_temp2;  //inn PBZ
+         int g1_temp2, g2_temp2;
+
+         int g1_left, g2_left;
+
+         Folding_to_BrillouinZone(k1_1_m_q_1_val, k1_2_m_q_2_val,
+                                  k1_1_m_q_1_val_temp, k1_2_m_q_2_val_temp,
+                                  g1_temp, g2_temp);
+         HamiltonianCont_.Getting_n1_n2_in_Primitive_BZ(k1_1_m_q_1_val_temp, k1_2_m_q_2_val_temp,
+                                                        k1_1_m_q_1_val_temp2, k1_2_m_q_2_val_temp2,
+                                                        g1_temp2, g2_temp2);
+
+          g1_left=g1_temp - g1_temp2;
+          g2_left=g2_temp - g2_temp2;
+
+
+         for(int g3_1=0;g3_1<Lambda_G1_grid_size;g3_1++){
+                    for(int g3_2=0;g3_2<Lambda_G2_grid_size;g3_2++){
+         int k1_1_p_g3_1_val = k1_1_val + (g3_1 + Lambda_G_grid_L1_min)*l1_;
+         int k1_2_p_g3_2_val = k1_2_val + (g3_2 + Lambda_G_grid_L2_min)*l2_;
+         int k1_1_p_g3_1_val_temp, k1_2_p_g3_2_val_temp; // in FBZ (0,2pi)
+         int g1_right_temp, g2_right_temp;
+
+         int k1_1_p_g3_1_val_temp2, k1_2_p_g3_2_val_temp2; // in PBZ
+         int g1_right_temp2, g2_right_temp2;
+         int g1_right, g2_right;
+         Folding_to_BrillouinZone(k1_1_p_g3_1_val, k1_2_p_g3_2_val,
+                                  k1_1_p_g3_1_val_temp, k1_2_p_g3_2_val_temp,
+                                  g1_right_temp, g2_right_temp);
+         HamiltonianCont_.Getting_n1_n2_in_Primitive_BZ(k1_1_p_g3_1_val_temp, k1_2_p_g3_2_val_temp,
+                                                        k1_1_p_g3_1_val_temp2, k1_2_p_g3_2_val_temp2,
+                                                        g1_right_temp2, g2_right_temp2);
+
+         g1_right=g1_right_temp - g1_right_temp2;
+         g2_right=g2_right_temp - g2_right_temp2;
+
+         LambdaPBZ_k1_m_q[spin][n1][n2][k1_1][k1_2][q_1][q_2][g3_1][g3_2]=0.0;
+         for(int g_1=0;g_1<Lambda_G1_grid_size;g_1++){
+                    for(int g_2=0;g_2<Lambda_G2_grid_size;g_2++){
+           int g1_left_ind = (g_1 + Lambda_G_grid_L1_min + g1_left) - Lambda_G_grid_L1_min;
+           int g2_left_ind = (g_2 + Lambda_G_grid_L2_min + g2_left) - Lambda_G_grid_L2_min;
+
+           int g1_right_ind = (g_1 + Lambda_G_grid_L1_min + g1_right) - Lambda_G_grid_L1_min;
+           int g2_right_ind = (g_2 + Lambda_G_grid_L2_min + g2_right) - Lambda_G_grid_L2_min;
+
+
+           if( (g1_left_ind>=0 && g1_left_ind<G_grid_L1) &&
+               (g2_left_ind>=0 && g2_left_ind<G_grid_L2) &&
+               (g1_right_ind>=0 && g1_right_ind<G_grid_L1) &&
+               (g2_right_ind>=0 && g2_right_ind<G_grid_L2)
+                   ){
+
+           for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
+           int comp_left = HamiltonianCont_.Coordinates_.Nbasis(g1_left_ind, g2_left_ind, layer);
+           int comp_right = HamiltonianCont_.Coordinates_.Nbasis(g1_right_ind, g2_right_ind, layer);
+           LambdaPBZ_k1_m_q[spin][n1][n2][k1_1][k1_2][q_1][q_2][g3_1][g3_2] +=
+           conj(HamiltonianCont_.BlochStates_PBZ[spin][n1][ k1_1_m_q_1_val_temp + l1_*k1_2_m_q_2_val_temp][comp_left])*
+           HamiltonianCont_.BlochStates_PBZ[spin][n2][ k1_1_p_g3_1_val_temp + l1_*k1_2_p_g3_2_val_temp][comp_right];
+        }
+           }
+
+          }}
+
+
+                          }
+                      }
+
+
+                }
+              }
+            }
+        }
+    }
+}}
+
+
+
+
+
+
+
+//Lambda_k2_p_q , writing k1 for k2 below
+    for(int spin=0;spin<2;spin++){
+        for(int n1=0;n1<Nbands;n1++){
+            for(int n2=0;n2<Nbands;n2++){
+              for(int k1_1=0;k1_1<l1_;k1_1++){;
+                  for(int k1_2=0;k1_2<l2_;k1_2++){
+         k1_1_val = HamiltonianCont_.PBZ_map_n1[k1_1][k1_2];
+         k1_2_val = HamiltonianCont_.PBZ_map_n2[k1_1][k1_2];
+                for(int q_1=0;q_1<l1_;q_1++){
+                   for(int q_2=0;q_2<l2_;q_2++){
+         q_1_val = HamiltonianCont_.PBZ_map_n1[q_1][q_2];
+         q_2_val = HamiltonianCont_.PBZ_map_n2[q_1][q_2];
+
+
+         int k1_1_val_temp, k1_2_val_temp;
+         int g1_temp, g2_temp;
+
+         int k1_1_val_temp2, k1_2_val_temp2;
+         int g1_temp2, g2_temp2;
+
+         int g1_left, g2_left;
+         Folding_to_BrillouinZone(k1_1_val, k1_2_val,
+                                  k1_1_val_temp, k1_2_val_temp,
+                                  g1_temp, g2_temp);
+         HamiltonianCont_.Getting_n1_n2_in_Primitive_BZ(k1_1_val_temp, k1_2_val_temp,
+                                                        k1_1_val_temp2, k1_2_val_temp2,
+                                                        g1_temp2, g2_temp2);
+
+          g1_left=g1_temp - g1_temp2;
+          g2_left=g2_temp - g2_temp2;
+
+
+         for(int g3_1=0;g3_1<Lambda_G1_grid_size;g3_1++){
+                    for(int g3_2=0;g3_2<Lambda_G2_grid_size;g3_2++){
+         int k1_1_p_q_1_p_g3_1_val = k1_1_val + (g3_1 + Lambda_G_grid_L1_min)*l1_ + q_1_val;
+         int k1_2_p_q_2_p_g3_2_val = k1_2_val + (g3_2 + Lambda_G_grid_L1_min)*l2_ + q_2_val;
+
+         int k1_1_p_q_1_p_g3_1_val_temp, k1_2_p_q_2_p_g3_2_val_temp; // in FBZ (0,2pi)
+         int g1_right_temp, g2_right_temp;
+
+         int k1_1_p_q_1_p_g3_1_val_temp2, k1_2_p_q_2_p_g3_2_val_temp2; // in PBZ
+         int g1_right_temp2, g2_right_temp2;
+         int g1_right, g2_right;
+
+         Folding_to_BrillouinZone(k1_1_p_q_1_p_g3_1_val, k1_2_p_q_2_p_g3_2_val,
+                                  k1_1_p_q_1_p_g3_1_val_temp, k1_2_p_q_2_p_g3_2_val_temp,
+                                  g1_right_temp, g2_right_temp);
+         HamiltonianCont_.Getting_n1_n2_in_Primitive_BZ(k1_1_p_q_1_p_g3_1_val_temp, k1_2_p_q_2_p_g3_2_val_temp,
+                                                        k1_1_p_q_1_p_g3_1_val_temp2, k1_2_p_q_2_p_g3_2_val_temp2,
+                                                        g1_right_temp2, g2_right_temp2);
+
+         g1_right=g1_right_temp - g1_right_temp2;
+         g2_right=g2_right_temp - g2_right_temp2;
+
+         LambdaPBZ_k2_p_q[spin][n1][n2][k1_1][k1_2][q_1][q_2][g3_1][g3_2]=0.0;
+         for(int g_1=0;g_1<Lambda_G1_grid_size;g_1++){
+                    for(int g_2=0;g_2<Lambda_G2_grid_size;g_2++){
+           int g1_left_ind = (g_1 + Lambda_G_grid_L1_min + g1_left) - Lambda_G_grid_L1_min;
+           int g2_left_ind = (g_2 + Lambda_G_grid_L2_min + g2_left) - Lambda_G_grid_L2_min;
+
+           int g1_right_ind = (g_1 + Lambda_G_grid_L1_min + g1_right) - Lambda_G_grid_L1_min;
+           int g2_right_ind = (g_2 + Lambda_G_grid_L2_min + g2_right) - Lambda_G_grid_L2_min;
+
+
+           if( (g1_left_ind>=0 && g1_left_ind<G_grid_L1) &&
+               (g2_left_ind>=0 && g2_left_ind<G_grid_L2) &&
+               (g1_right_ind>=0 && g1_right_ind<G_grid_L1) &&
+               (g2_right_ind>=0 && g2_right_ind<G_grid_L2)
+                   ){
+
+           for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
+           int comp_left = HamiltonianCont_.Coordinates_.Nbasis(g1_left_ind, g2_left_ind, layer);
+           int comp_right = HamiltonianCont_.Coordinates_.Nbasis(g1_right_ind, g2_right_ind, layer);
+           LambdaPBZ_k2_p_q[spin][n1][n2][k1_1][k1_2][q_1][q_2][g3_1][g3_2] +=
+           conj(HamiltonianCont_.BlochStates_PBZ[spin][n1][ k1_1_val_temp + l1_*k1_2_val_temp][comp_left])*
+           HamiltonianCont_.BlochStates_PBZ[spin][n2][ k1_1_p_q_1_p_g3_1_val_temp + l1_*k1_2_p_q_2_p_g3_2_val_temp][comp_right];
+        }
+           }
+
+          }}
+
+
+                          }
+                      }
+
+
+                }
+              }
+            }
+        }
+    }
+}}
+
+
+
+
+
+
+
+
+
+
+
+
+}
+
+
+
+
+void Hamiltonian::PrintBlochStatesPBZ(){
+
+    for(int spin=0;spin<2;spin++){
+          for(int n=0;n<Nbands;n++){
+
+        string filename = "PBZ_BlochState_spin"+to_string(spin)+"_band"+to_string(n)+".txt";
+        ofstream fileout(filename.c_str());
+        fileout<<"#comp  Psi(k1,k2).real()  Psi(k2,k2).imag  ..  ..  .."<<endl;
+
+
+               // phase_= conj(HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)][comp_norm])/
+               //         (abs(HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)][comp_norm]));
+
+                for(int g2=0;g2<G_grid_L2;g2++){
+                for(int g1=0;g1<G_grid_L1;g1++){
+                for(int layer_=0;layer_<1;layer_++){//Parameters_.max_layer_ind
+                    int comp = HamiltonianCont_.Coordinates_.Nbasis(g1,g2,layer_);
+                //for(int comp=0;comp<G_grid_L1*G_grid_L2*Parameters_.max_layer_ind;comp++){
+                fileout<<comp<<"  "<< g1<<"  "<<g2<<"  "<<layer_;
+              for(int i2=0;i2<l2_;i2++){
+              for(int i1=0;i1<l1_;i1++){  //k_ind
+               fileout<<"  "<<HamiltonianCont_.BlochStates_PBZ[spin][n][i1+i2*l1_][comp].real()<<"  "<<HamiltonianCont_.BlochStates_PBZ[spin][n][i1+i2*l1_][comp].imag();
+              }
+            }
+              fileout<<endl;
+            }}
+               fileout<<endl;
+                }
+          }
+        }
+
+
+}
+
+void Hamiltonian::PrintBlochStates(){
+
+    for(int spin=0;spin<2;spin++){
+          for(int n=0;n<Nbands;n++){
+
+        string filename = "BlochState_spin"+to_string(spin)+"_band"+to_string(n)+".txt";
+        ofstream fileout(filename.c_str());
+        fileout<<"#comp  Psi(k1,k2).real()  Psi(k2,k2).imag  ..  ..  .."<<endl;
+
+
+               // phase_= conj(HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)][comp_norm])/
+               //         (abs(HamiltonianCont_.BlochStates[spin][n][i1+i2*(l1_+1)][comp_norm]));
+
+                for(int g2=0;g2<G_grid_L2;g2++){
+                for(int g1=0;g1<G_grid_L1;g1++){
+                for(int layer_=0;layer_<1;layer_++){//Parameters_.max_layer_ind
+                    int comp = HamiltonianCont_.Coordinates_.Nbasis(g1,g2,layer_);
+                //for(int comp=0;comp<G_grid_L1*G_grid_L2*Parameters_.max_layer_ind;comp++){
+                fileout<<comp<<"  "<< g1<<"  "<<g2<<"  "<<layer_;
+              for(int i2=0;i2<l2_;i2++){
+              for(int i1=0;i1<l1_;i1++){  //k_ind
+               fileout<<"  "<<BlochStates[spin][n][i1+i2*l1_][comp].real()<<"  "<<BlochStates[spin][n][i1+i2*l1_][comp].imag();
+              }
+            }
+              fileout<<endl;
+            }}
+               fileout<<endl;
+                }
+          }
+        }
+
+
+}
 
 void Hamiltonian::Create_Hbar_and_Fbar(){
+
+    string Hbarfilestr="Hbar.txt";
+    ofstream Hbarfile(Hbarfilestr.c_str());
+
+    string Fbarfilestr="Fbar.txt";
+    ofstream Fbarfile(Fbarfilestr.c_str());
+
 
     int k_ind1, k_ind2, q_ind1, q_ind2;
     int kpq_temp1, kpq_temp2;
@@ -2643,6 +3765,8 @@ void Hamiltonian::Create_Hbar_and_Fbar(){
     for(int n1=0;n1<Nbands;n1++){
     for(int n2=0;n2<Nbands;n2++){
     for(int spin=0;spin<2;spin++){
+
+
     Hbar[k_][n1][n2][spin]=0.0;
     Fbar[k_][n1][n2][spin]=0.0;
     for(int q_=0;q_<ns_;q_++){
@@ -2659,13 +3783,31 @@ void Hamiltonian::Create_Hbar_and_Fbar(){
         Hbar[k_][n1][n2][spin] += (-1.0/(2.0*Area))*Interaction_val[spin][spin][n1][n3][n2][n3][kpq_new][k_][q_];
 
         for(int spin_p=0;spin_p<2;spin_p++){
+            //if( !Parameters_.Imposing_SzZero ||  (spin_p==spin)){
         Fbar[k_][n1][n2][spin] += (1.0/(2.0*Area))*Interaction_val[spin][spin_p][n1][n3][n3][n2][k_][q_][0];
-        }
+                //}
+            }
 
         }
+
+
     }
 
-    }}}}
+
+
+    }
+
+    if(n1==0 && n2==1){
+      Hbarfile<< k_<<"  "<<  Hbar[k_][n1][n2][0].real()<<"  "<<Hbar[k_][n1][n2][0].imag()<<"  "
+              <<  Hbar[k_][n1][n2][1].real()<<"  "<<Hbar[k_][n1][n2][1].imag()<<"  "<<endl;
+    }
+
+    if(n1==0 && n2==1){
+      Fbarfile<< k_<<"  "<<  Fbar[k_][n1][n2][0].real()<<"  "<<Fbar[k_][n1][n2][0].imag()<<"  "
+              <<  Fbar[k_][n1][n2][1].real()<<"  "<<Fbar[k_][n1][n2][1].imag()<<"  "<<endl;
+    }
+
+    }}}
 
 }
 
@@ -3041,10 +4183,12 @@ assert(k2_mk3_kSL_ind==0);
                           k_sublattices[kSL_ind].size()*band3 +
                           k_sublattices[kSL_ind].size()*Nbands*spin_p;
 
+                if( !Parameters_.Imposing_SzZero ||  (spin_p==spin)){
                 value += (1.0/(2.0*Area)) * ( //HERE
                         Bmat[k1_ind][k2_ind][k2_mk3_kSL_internal_ind][band1][band2][band3][band4][spin][spin_p]
                         )*
                         OParams[kSL_ind](OP_row,OP_col);
+                }
 
             
         }
@@ -3098,7 +4242,7 @@ void Hamiltonian::Create_Hamiltonian(int kset_ind){
                               k_sublattices[kset_ind].size()*Nbands*spin;
 
                     Ham_(row_ind, col_ind) += (1.0*Hbar[k_sublattices[kset_ind][k_ind]][band1][band2][spin]
-                                             +
+                                            +
                                            1.0*Fbar[k_sublattices[kset_ind][k_ind]][band1][band2][spin]);
                 }
             }
@@ -3156,9 +4300,10 @@ void Hamiltonian::Create_Hamiltonian(int kset_ind){
                               k_sublattices[kset_ind].size()*Nbands*spin;
 
                     //k_sublattices[kset_ind][k3_ind]);
-
-                  Ham_(row_ind,col_ind) += -1.0*FockCoefficients[kset_ind][k2_ind][k3_ind][band2][band4][spin][spin_p];
-                   //cout<<"Fock Coeff : "<<FockCoefficients[kset_ind][k2_ind][k3_ind][band2][band4][spin][spin_p]<<endl;
+                    if(  !Parameters_.Imposing_SzZero || (spin==spin_p)){
+                 Ham_(row_ind,col_ind) += -1.0*FockCoefficients[kset_ind][k2_ind][k3_ind][band2][band4][spin][spin_p];
+                    }
+                  //cout<<"Fock Coeff : "<<FockCoefficients[kset_ind][k2_ind][k3_ind][band2][band4][spin][spin_p]<<endl;
                    //Fock_coefficient(k_sublattices[kset_ind][k2_ind], k_sublattices[kset_ind][k3_ind], band2, band4, spin, spin_p);
                 }   
                 }
@@ -3168,6 +4313,9 @@ void Hamiltonian::Create_Hamiltonian(int kset_ind){
                 
             }
             }
+
+
+
 
 
 
@@ -3722,41 +4870,126 @@ void Hamiltonian::Update_OrderParameters_AndersonMixing(int iter){
 
 void Hamiltonian::Imposing_ZeroSz(){
 
+vector<Matrix<complex<double>>> OParams_temp;
+OParams_temp=OParams;
 
 int Spin_up=0;
 int Spin_dn=1;
-int row_val_up, row_val_dn;
-int col_val_up, col_val_dn;
+int row_val, row_val_p;
+int col_val, col_val_p;
+int spin1_bar, spin2_bar;
+
+int k_ind_val, k_ind1, k_ind2;
+int minus_k_ind1, minus_k_ind2;
+int G1_ind_temp, G2_ind_temp;
+int minus_k_ind_val;
+int minus_k_ind_SL, minus_k_ind;
+
 complex<double> val_avg;
+
+//Time reversal symmetry
 for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
-
-//OParams_new[kSL_ind].resize(k_sublattices[kSL_ind].size()*Nbands*2,k_sublattices[kSL_ind].size()*Nbands*2);
-
 for(int k_ind=0;k_ind<k_sublattices[kSL_ind].size();k_ind++){
+
+    k_ind_val = k_sublattices[kSL_ind][k_ind];
+    k_ind1=Coordinates_.indx_cellwise(k_ind_val);
+    k_ind2=Coordinates_.indy_cellwise(k_ind_val);
+
+    Folding_to_BrillouinZone(-1*k_ind1, -1*k_ind2, minus_k_ind1, minus_k_ind2, G1_ind_temp, G2_ind_temp);
+    minus_k_ind_val=minus_k_ind1 + minus_k_ind2*l1_;
+
+    minus_k_ind_SL = Inverse_kSublattice_mapping[minus_k_ind_val].first;
+    minus_k_ind = Inverse_kSublattice_mapping[minus_k_ind_val].second;
+
+
 for(int band1=0;band1<Nbands;band1++){
+for(int band2=0;band2<Nbands;band2++){
 
-row_val_up = k_ind +
+for(int spin1=0;spin1<2;spin1++){
+spin1_bar=1-spin1;
+for(int spin2=0;spin2<2;spin2++){
+spin2_bar=1-spin2;
+
+row_val = k_ind +
           k_sublattices[kSL_ind].size()*band1 +
-          k_sublattices[kSL_ind].size()*Nbands*Spin_up;
+          k_sublattices[kSL_ind].size()*Nbands*spin1;
 
-row_val_dn = k_ind +
-          k_sublattices[kSL_ind].size()*band1 +
-          k_sublattices[kSL_ind].size()*Nbands*Spin_dn;
+col_val = k_ind +
+          k_sublattices[kSL_ind].size()*band2 +
+          k_sublattices[kSL_ind].size()*Nbands*spin2;
 
+row_val_p = minus_k_ind +
+        k_sublattices[minus_k_ind_SL].size()*band1 +
+        k_sublattices[minus_k_ind_SL].size()*Nbands*spin1_bar;
 
-val_avg = 0.5*(OParams[kSL_ind](row_val_up, row_val_up) + OParams[kSL_ind](row_val_dn, row_val_dn));
+col_val_p = minus_k_ind +
+        k_sublattices[minus_k_ind_SL].size()*band2 +
+        k_sublattices[minus_k_ind_SL].size()*Nbands*spin2_bar;
 
-OParams[kSL_ind](row_val_up, row_val_up)=val_avg;
-OParams[kSL_ind](row_val_dn, row_val_dn)=val_avg;
+val_avg = 0.5*(OParams_temp[kSL_ind](row_val, col_val) + OParams_temp[minus_k_ind_SL](row_val_p, col_val_p));
 
-}
+OParams[kSL_ind](row_val, col_val)=val_avg;
 
+}}
+
+}}
 }}
 
 
 
+OParams_temp=OParams;
+
+//Inversion symmetry
+for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+for(int k_ind=0;k_ind<k_sublattices[kSL_ind].size();k_ind++){
+
+    k_ind_val = k_sublattices[kSL_ind][k_ind];
+    k_ind1=Coordinates_.indx_cellwise(k_ind_val);
+    k_ind2=Coordinates_.indy_cellwise(k_ind_val);
+
+    Folding_to_BrillouinZone(-1*k_ind1, -1*k_ind2, minus_k_ind1, minus_k_ind2, G1_ind_temp, G2_ind_temp);
+    minus_k_ind_val=minus_k_ind1 + minus_k_ind2*l1_;
+
+    minus_k_ind_SL = Inverse_kSublattice_mapping[minus_k_ind_val].first;
+    minus_k_ind = Inverse_kSublattice_mapping[minus_k_ind_val].second;
 
 
+for(int band1=0;band1<Nbands;band1++){
+for(int band2=0;band2<Nbands;band2++){
+
+for(int spin1=0;spin1<2;spin1++){
+spin1_bar=spin1;
+for(int spin2=0;spin2<2;spin2++){
+spin2_bar=spin2;
+
+row_val = k_ind +
+          k_sublattices[kSL_ind].size()*band1 +
+          k_sublattices[kSL_ind].size()*Nbands*spin1;
+
+col_val = k_ind +
+          k_sublattices[kSL_ind].size()*band2 +
+          k_sublattices[kSL_ind].size()*Nbands*spin2;
+
+row_val_p = minus_k_ind +
+        k_sublattices[minus_k_ind_SL].size()*band1 +
+        k_sublattices[minus_k_ind_SL].size()*Nbands*spin1_bar;
+
+col_val_p = minus_k_ind +
+        k_sublattices[minus_k_ind_SL].size()*band2 +
+        k_sublattices[minus_k_ind_SL].size()*Nbands*spin2_bar;
+
+val_avg = 0.5*(OParams_temp[kSL_ind](row_val, col_val) + OParams_temp[minus_k_ind_SL](row_val_p, col_val_p));
+
+OParams[kSL_ind](row_val, col_val)=val_avg;
+
+}}
+
+}}
+}}
+
+
+
+/*
 complex<double> val_Sp, val_Sm;
 
 
@@ -3793,7 +5026,7 @@ OParams[kSL_ind](row_val_dn, col_val_up) = 0;//val_Sm;
 OParams[kSL_ind](col_val_up, row_val_dn) = 0;//conj(val_Sm);
 }}}}}
 
-
+*/
 
 
 
@@ -4022,11 +5255,24 @@ OParams[kSL_ind](row_val,col_val) = complex<double>(Myrandom(),0.0);
     }
 
 
-
+/*
     if(Parameters_.Imposing_SzZero){
-        Imposing_ZeroSz();
+        for(int kSL_ind=0;kSL_ind<k_sublattices.size();kSL_ind++){
+            OParams[kSL_ind].resize(k_sublattices[kSL_ind].size()*2*Nbands,k_sublattices[kSL_ind].size()*2*Nbands);
+        for(int row_val=0;row_val<OParams[kSL_ind].n_row();row_val++){
+        for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
+            if(row_val!=col_val){
+                if(row_val>col_val){
+        OParams[kSL_ind](row_val,col_val) = 0.0;
+        OParams[kSL_ind](col_val,row_val) = 0.0;
+                }
+            }
+            else{
+        OParams[kSL_ind](row_val,col_val) = complex<double>(Myrandom(),0.0);
+            }
+        }}}
     }
-
+*/
 
 
     string file_OP="Initial_Oparams.txt";
@@ -4084,6 +5330,9 @@ void Hamiltonian::RunSelfConsistency(){
 
 
     Initialize_OParams();
+    if(Parameters_.Imposing_SzZero){
+      Imposing_ZeroSz();
+    }
     Update_Hartree_Coefficients();
     Update_Fock_Coefficients();
 
@@ -4122,14 +5371,14 @@ void Hamiltonian::RunSelfConsistency(){
         Create_Hamiltonian(kset_ind);
         char Dflag='V';
 
-        // string filename1 = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Hamil.txt";
-        // Print_Spectrum(kset_ind, filename1);
+//         string filename1 = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Hamil.txt";
+//         Print_Spectrum(kset_ind, filename1);
 
         Diagonalize(Dflag);
         AppendEigenspectrum(kset_ind);
 
-        // string filename = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Spectrum.txt";
-        // Print_Spectrum(kset_ind, filename);
+//         string filename = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Spectrum.txt";
+//         Print_Spectrum(kset_ind, filename);
 
     }
 
@@ -4143,6 +5392,8 @@ void Hamiltonian::RunSelfConsistency(){
     mu_=chemicalpotential(mu_old,N_Particles);
 
     Calculate_OParams_and_diff(diff_);
+
+
     Calculate_Total_Energy();
     Energy_new = Total_QuantEnergy.real() + Total_ClassEnergy.real();
     Energy_diff = abs(Energy_new - Energy_old);
@@ -4186,6 +5437,31 @@ for(int col_val=0;col_val<OParams_new[kSL_ind].n_col();col_val++){
 
 
 
+    //One extra iteration
+    Update_Hartree_Coefficients();
+    Update_Fock_Coefficients();
+    mu_old=mu_;
+    for(int kset_ind=0;kset_ind<k_sublattices.size();kset_ind++){
+
+        Parameters_.MagField_ZeemanSplitting=1.0;
+        Create_Hamiltonian(kset_ind);
+        char Dflag='V';
+
+         string filename1 = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Hamil.txt";
+         Print_Spectrum(kset_ind, filename1);
+
+        Diagonalize(Dflag);
+        AppendEigenspectrum(kset_ind);
+
+         string filename = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Spectrum.txt";
+         Print_Spectrum(kset_ind, filename);
+
+    }
+    mu_=chemicalpotential(mu_old,N_Particles);
+    Calculate_OParams_and_diff(diff_);
+
+
+
     string file_OP="Temperature_"+ string(temp_char) +Parameters_.OP_out_file;
     ofstream file_OP_out(file_OP.c_str());
     file_OP_out<<"#k_sublattice  row_val   col_val  value.real  value.imag"<<endl;
@@ -4211,6 +5487,11 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     Calculate_ChernNumbers_HFBands();
     }
 
+
+    //Print_HF_Band_Projected_Interaction();
+    //Print_HF_Band_Projected_Interaction_TR_and_Inversion_imposed();
+
+
     string Oparams1_str = "Temp_"+string(temp_char)+"RealSpace_OParams_moiresites.txt";
     string Oparams2_str = "Temp_"+string(temp_char)+"RealSpace_OParams.txt";
 
@@ -4218,7 +5499,7 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     Calculate_RealSpace_OParams_new3(Oparams2_str);
 
     //Here
-    Kick_OParams(0.01);
+    //Kick_OParams(0.01);
 
 
     //Calculate_RealSpace_OParams_new("RealSpace_OParams_new.txt");
@@ -4265,8 +5546,11 @@ BO[n][spin][k_ind][np][spinp][kp_ind] =0.0;
 
 for(int comp=0;comp<G_grid_L1*G_grid_L2*2;comp++){
     //cout<<"Here: "<<n<<" "<<spin<<" "<<k_ind<<" "<<np<<" "<<spinp<<" "<<kp_ind<<" "<<comp<<"  "<<endl;
-BO[n][spin][k_ind][np][spinp][kp_ind] += conj(BlochStates_old_[spin][n][k_ind1+k_ind2*(l1_+1)][comp])*
+
+    if(spin==spinp && n==np){
+    BO[n][spin][k_ind][np][spinp][kp_ind] += conj(BlochStates_old_[spin][n][k_ind1+k_ind2*(l1_+1)][comp])*
                                          (BlochStates_old_[spinp][np][kp_ind1+kp_ind2*(l1_+1)][comp]);
+        }
 }
 
 }}}}
@@ -4584,7 +5868,7 @@ int q_ind1, q_ind2, q_ind;
 int q1_kSL_ind, q1_kSL_internal_ind;
 Mat_1_intpair k_path_;
 double kx_val, ky_val;
-k_path_ = Get_k_path(1);
+k_path_ = Get_k_path(2);
 
 int q_ind1_new, q_ind2_new, G1_ind_temp, G2_ind_temp;
 
@@ -4825,6 +6109,94 @@ LambdaNew_[spin][n1][n2][k1_1_ind][k1_2_ind][k2_1_ind][k2_2_ind][g1_ind][g2_ind]
 }
 
 
+void Hamiltonian::PrintFormFactors_PBZ(int band1, int band2, int spin){
+
+
+    for(int k1_1=0;k1_1<l1_;k1_1++){
+    for(int k1_2=0;k1_2<l2_;k1_2++){
+    int k1 = k1_1 + k1_2*l1_;
+
+    for(int q_1=0;q_1<l1_;q_1++){
+    for(int q_2=0;q_2<l2_;q_2++){
+    int q = q_1 + q_2*l1_;
+
+
+    string file_FF1="LambdaPBZ_k2pq_band_spin"+to_string(spin)+"_bands"+to_string(band1)+"_"+to_string(band2)+ "_k2_q_" +to_string(k1) +"_" + to_string(q) +  ".txt";
+    ofstream fl_FF_out1(file_FF1.c_str());
+    fl_FF_out1<<"#g1   g2   Lambda[spin][k2][q][g1,g2].real()   Lambda[spin][k2][q][g1,g2].imag()"<<endl;
+
+    string file_FF="LambdaPBZ_k1mq_band_spin"+to_string(spin)+"_bands"+to_string(band1)+"_"+to_string(band2)+ "_k1_q_" +to_string(k1) +"_" + to_string(q) +  ".txt";
+    ofstream fl_FF_out(file_FF.c_str());
+    fl_FF_out<<"#g1   g2   Lambda[spin][k1][q][g1,g2].real()   Lambda[spin][k1][q][g1,g2].imag()"<<endl;
+
+
+    for(int g_ind1=Lambda_G_grid_L1_min;g_ind1<=Lambda_G_grid_L1_max;g_ind1++){
+    int g1_ind = g_ind1 - Lambda_G_grid_L1_min;
+    for(int g_ind2=Lambda_G_grid_L2_min;g_ind2<=Lambda_G_grid_L2_max;g_ind2++){
+    int g2_ind = g_ind2 - Lambda_G_grid_L2_min;
+
+    fl_FF_out<<g_ind1<<"   "<<g_ind2<<"  "<<LambdaPBZ_k1_m_q[spin][band1][band2][k1_1][k1_2][q_1][q_2][g1_ind][g2_ind].real()<< "  "<<LambdaPBZ_k1_m_q[spin][band1][band2][k1_1][k1_2][q_1][q_2][g1_ind][g2_ind].imag()<<endl;
+
+    fl_FF_out1<<g_ind1<<"   "<<g_ind2<<"  "<<LambdaPBZ_k2_p_q[spin][band1][band2][k1_1][k1_2][q_1][q_2][g1_ind][g2_ind].real()<< "  "<<LambdaPBZ_k2_p_q[spin][band1][band2][k1_1][k1_2][q_1][q_2][g1_ind][g2_ind].imag()<<endl;
+
+
+
+    }
+    fl_FF_out<<endl;
+    fl_FF_out1<<endl;
+    }
+
+    }}
+    }}
+
+}
+
+void Hamiltonian::PrintFormFactors2(int band1, int band2, int spin){
+
+
+
+// int k1_1, k1_2, k2_1, k2_2;
+// k1_1=1; k1_2=0;
+// k2_1=0; k2_2=0;
+
+  for(int k1_1=0;k1_1<l1_;k1_1++){
+  for(int k1_2=0;k1_2<l2_;k1_2++){
+  int k1 = k1_1 + k1_2*l1_;
+
+  for(int k2_1=0;k2_1<l1_;k2_1++){
+  for(int k2_2=0;k2_2<l2_;k2_2++){
+  int k2 = k2_1 + k2_2*l1_;
+
+
+   string file_FF="Lambda_k_band_spin"+to_string(spin)+"_bands"+to_string(band1)+"_"+to_string(band2)+ "_k1_k2_" +to_string(k1) +"_" + to_string(k2) +  ".txt";
+   ofstream fl_FF_out(file_FF.c_str());
+   fl_FF_out<<"#g1   g2   Lambda[spin][k1][k2][g1,g2].real()   Lambda[spin][k1][k2][g1,g2].imag()"<<endl;
+
+ int k1_1_ind = k1_1 + (l1_-1);
+ int k1_2_ind = k1_2 + (l2_-1);
+
+ int k2_1_ind = k2_1;
+ int k2_2_ind = k2_2;
+
+
+     for(int g_ind1=Lambda_G_grid_L1_min;g_ind1<=Lambda_G_grid_L1_max;g_ind1++){
+     int g1_ind = g_ind1 - Lambda_G_grid_L1_min;
+     for(int g_ind2=Lambda_G_grid_L2_min;g_ind2<=Lambda_G_grid_L2_max;g_ind2++){
+     int g2_ind = g_ind2 - Lambda_G_grid_L2_min;
+
+     fl_FF_out<<g_ind1<<"   "<<g_ind2<<"  "<<LambdaNew_[spin][band1][band2][k1_1_ind][k1_2_ind][k2_1_ind][k2_2_ind][g1_ind][g2_ind].real()<< "  "<<LambdaNew_[spin][band1][band2][k1_1_ind][k1_2_ind][k2_1_ind][k2_2_ind][g1_ind][g2_ind].imag()<<endl;
+
+
+
+     }
+     fl_FF_out<<endl;
+     }
+
+
+  }}}}
+
+}
+
 void Hamiltonian::PrintFormFactors(int band1, int band2, int spin){
 
 string file_FF="Lambda_k_band_spin"+to_string(spin)+"_bands"+to_string(band1)+"_"+to_string(band2)+".txt";
@@ -4913,7 +6285,7 @@ return lambda_temp;
 }
 
 
-void Hamiltonian::PrintBlochStates(){
+void Hamiltonian::PrintBlochStates_old(){
 
 int comp, k_ind;
 for(int spin=0;spin<2;spin++){

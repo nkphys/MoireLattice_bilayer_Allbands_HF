@@ -67,7 +67,7 @@ set palette define (0 "red", 0.3 "red", 1.0 "blue")
 #p "/home/nitin/Desktop/Lisa1/GammaValleyRuns/Filling2.0/TwistAngle4.0/N_MoireCells6x6/MagneticUC_N00_1_N01_0_N10_0_N11_1/N_HF_BANDS2/DistanceToGate200_MagSplit0.00/epsilon15.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):($6*100):($7*100):(($6)*50) w vec arrowstyle 3 notitle
 #1:2:($2*0+10) with circles
 
-p "layer_0_RealSpace_OParams.txt" u ($3):($4):($8*400):($7*400):((1*$6*$6 + 1*$7*$7 + 1*$8*$8)) w vec arrowstyle 3 notitle
+#p "layer_0_RealSpace_OParams.txt" u ($3):($4):($8*400):($7*400):((1*$6*$6 + 1*$7*$7 + 1*$8*$8)) w vec arrowstyle 3 notitle
 #p "layer_0_RealSpace_OParams_moiresites.txt" u ($5):($6):($10*1000000):($9*1000000):((1*$8*$8 + 1*$9*$9 + 1*$10*$10)) w vec arrowstyle 3 notitle
 
 #set style fill transparent solid 0.6 noborder
@@ -87,7 +87,7 @@ set pm3d interpolate 1,1
 #sp "/home/nitin/Desktop/Lisa2/GammaValleyRuns/Filling1.0/TwistAngle1.0/N_MoireCells6x6/MagneticUC_N00_6_N01_0_N10_0_N11_6/N_HF_BANDS2/DistanceToGate200_MagSplit0.00/epsilon10.0/RandomSeed1/layer_0_RealSpace_OParams.txt" u ($3):($4):(($5)*500000000.0) w pm3d map lc palette notitle
 
 #set cbr [0:1]
-#sp "layer_0_RealSpace_OParams.txt" u ($3):($4):((($5))*50.0) w pm3d map lc palette notitle
+sp "layer_0_Temp_0.0001000000RealSpace_OParams.txt" u ($3):($4):((($5))*50.0) w pm3d map lc palette notitle
 
 #p "layer_0_RealSpace_OParams_moiresites.txt" u ($5 - 0.5*$8*0.2):($6 - 0.5*$10*0.2):($9*4000.2):($10*4000.2):(sqrt($8*$8 + $9*$9 +$10*$10)) w vec arrowstyle 3 notitle
 
