@@ -151,11 +151,13 @@ int main(int argc, char *argv[]) {
          Hamiltonian_.Create_PBZ_map();
          Hamiltonian_.Saving_NonInteractingSpectrum();
          Hamiltonian_.Saving_NonInteractingSpectrum_PrimBZ();
+         Hamiltonian_.Saving_NonInteractingSpectrum_Range_m1_to_L();
          Hamiltonian_.NonInteractingSpectrum_AlongPath(Hamiltonian_.Get_k_path(0));
 
-         //assert(false);
+         assert(false);
 
          Hamiltonian_.Calculate_ChernNumbers();
+         Hamiltonian_.Calculate_QuantumGeometry_using_Projectors();
 
          Coordinates Coordinates_HF_(Parameters_.moire_BZ_L1, Parameters_.moire_BZ_L2, 1);
 

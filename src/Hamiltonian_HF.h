@@ -97,6 +97,7 @@ public:
     Mat_1_intpair Get_k_path(int path_no);
     void Get_layer_overlaps(double &overlap_top, double &overlap_bottom, int band, int spin, int q_ind1, int q_ind2);
     void Saving_BlochState_Overlaps();
+    void Saving_PBZ_BlochState_Overlaps();
     void Calculate_ChernNumbers_HFBands();
     void Calculate_layer_resolved_densities();
     void Write_ordered_spectrum(string filename);
@@ -110,6 +111,11 @@ public:
     void PrintFormFactors_PBZ(int band1, int band2, int spin);
     int Get_maximum_comp(Mat_1_Complex_doub Vec_);
     void Print_HF_Band_Projected_Interaction_TR_and_Inversion_imposed();
+    void Calculate_NonAbelianChernNumbers_HFBands();
+    complex<double> Get_U_mat_NonAbelian(int mx_left, int my_left, int mx_right, int my_right, Mat_1_int Bands_);
+    complex<double> Determinant(Matrix<complex<double>> & A_);
+    void Calculate_Band_Projector(Mat_1_int Bands, int nx_, int ny_, Mat_2_Complex_doub & Projector_full);
+    void Calculate_QuantumGeometry_using_Projectors();
     //---------------------------------------
    
 
@@ -173,7 +179,7 @@ public:
 
     Mat_4_Complex_doub BlochStates, BlochStates_old_; //[valley(spin)][band][k][G,l]
     Mat_3_doub BlochEigvals; //[valley(spin)][band][k]
-    Mat_6_Complex_doub BO; //[band][spin][k][band'][spin'][k']
+    Mat_6_Complex_doub BO, BO_PBZ; //[band][spin][k][band'][spin'][k']
 
 
     Mat_2_Complex_doub N_layer_tau;
@@ -183,6 +189,9 @@ public:
     Mat_1_doub Eigenvalues_ordered;
 
     Mat_1_intpair Possible_k1_m_q, Possible_k2_p_q;
+
+    //Mat_3_Complex_doub Projector_band_resolved; //[m][comp][comp]
+    //Mat_2_Complex_doub Projector_full; //[comp][comp]
 
 //------------------
     
@@ -3328,6 +3337,22 @@ for(int k2_ind=0;k2_ind<k_sublattices[kSL_ind].size();k2_ind++){
     }
 
 
+
+    BO_PBZ.resize(Nbands);
+    for(int n=0;n<Nbands;n++){
+    BO_PBZ[n].resize(2);
+    for(int spin=0;spin<2;spin++){
+    BO_PBZ[n][spin].resize((l1_)*(l2_));
+    for(int k_ind=0;k_ind<((l1_)*(l2_));k_ind++){
+    BO_PBZ[n][spin][k_ind].resize(Nbands);
+    for(int np=0;np<Nbands;np++){
+    BO_PBZ[n][spin][k_ind][np].resize(2);
+    for(int spinp=0;spinp<2;spinp++){
+    BO_PBZ[n][spin][k_ind][np][spinp].resize((l1_)*(l2_));
+
+    }}}}}
+
+
     //----------
 
 } // ----------
@@ -5438,28 +5463,29 @@ for(int col_val=0;col_val<OParams_new[kSL_ind].n_col();col_val++){
 
 
     //One extra iteration
+    if(false){
     Update_Hartree_Coefficients();
     Update_Fock_Coefficients();
     mu_old=mu_;
     for(int kset_ind=0;kset_ind<k_sublattices.size();kset_ind++){
 
-        Parameters_.MagField_ZeemanSplitting=1.0;
+        Parameters_.MagField_ZeemanSplitting=0.0;
         Create_Hamiltonian(kset_ind);
         char Dflag='V';
 
-         string filename1 = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Hamil.txt";
-         Print_Spectrum(kset_ind, filename1);
+//         string filename1 = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Hamil.txt";
+//         Print_Spectrum(kset_ind, filename1);
 
         Diagonalize(Dflag);
         AppendEigenspectrum(kset_ind);
 
-         string filename = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Spectrum.txt";
-         Print_Spectrum(kset_ind, filename);
+//         string filename = "Iter_"+to_string(iter)+"_kSL_ind_"+to_string(kset_ind)+"_Spectrum.txt";
+//         Print_Spectrum(kset_ind, filename);
 
     }
     mu_=chemicalpotential(mu_old,N_Particles);
     Calculate_OParams_and_diff(diff_);
-
+    }
 
 
     string file_OP="Temperature_"+ string(temp_char) +Parameters_.OP_out_file;
@@ -5485,6 +5511,12 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
 
     if(abs(Parameters_.NMat_det)==1){
     Calculate_ChernNumbers_HFBands();
+    cout<<"-------Non Abelian Chern number---------"<<endl;
+    Calculate_NonAbelianChernNumbers_HFBands();
+    cout<<"-----------------------------------------"<<endl;
+
+    Calculate_QuantumGeometry_using_Projectors();
+
     }
 
 
@@ -5495,8 +5527,8 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     string Oparams1_str = "Temp_"+string(temp_char)+"RealSpace_OParams_moiresites.txt";
     string Oparams2_str = "Temp_"+string(temp_char)+"RealSpace_OParams.txt";
 
-    Calculate_RealSpace_OParams_important_positions_new3(Oparams1_str);
-    Calculate_RealSpace_OParams_new3(Oparams2_str);
+   // Calculate_RealSpace_OParams_important_positions_new3(Oparams1_str);
+   // Calculate_RealSpace_OParams_new3(Oparams2_str);
 
     //Here
     //Kick_OParams(0.01);
@@ -5561,13 +5593,494 @@ for(int comp=0;comp<G_grid_L1*G_grid_L2*2;comp++){
 }
 
 
+void Hamiltonian::Saving_PBZ_BlochState_Overlaps(){
+
+int k_ind, kp_ind;
+for(int n=0;n<Nbands;n++){
+for(int spin=0;spin<2;spin++){
+for(int k_ind1=0;k_ind1<(l1_);k_ind1++){
+for(int k_ind2=0;k_ind2<(l2_);k_ind2++){
+k_ind = k_ind1 + k_ind2*(l1_);
+
+for(int np=0;np<Nbands;np++){
+for(int spinp=0;spinp<2;spinp++){
+for(int kp_ind1=0;kp_ind1<(l1_);kp_ind1++){
+for(int kp_ind2=0;kp_ind2<(l2_);kp_ind2++){
+kp_ind = kp_ind1 + kp_ind2*(l1_);
+
+BO_PBZ[n][spin][k_ind][np][spinp][kp_ind] =0.0;
+
+for(int comp=0;comp<G_grid_L1*G_grid_L2*2;comp++){
+    //cout<<"Here: "<<n<<" "<<spin<<" "<<k_ind<<" "<<np<<" "<<spinp<<" "<<kp_ind<<" "<<comp<<"  "<<endl;
+
+    if(spin==spinp && n==np){
+    BO_PBZ[n][spin][k_ind][np][spinp][kp_ind] += conj(BlochStates[spin][n][k_ind1+k_ind2*(l1_)][comp])*
+                                         (BlochStates[spinp][np][kp_ind1+kp_ind2*(l1_)][comp]);
+        }
+}
+
+}}}}
+}}}}
+
+
+
+}
+
+complex<double> Hamiltonian::Determinant(Matrix<complex<double>> & A_){
+
+    complex<double> det_;
+    int ncol, nrow;
+    ncol=A_.n_col();
+    nrow=A_.n_row();
+    assert(ncol==2);
+    assert(nrow==2);
+
+    det_ = A_(0,0)*A_(1,1) - A_(0,1)*A_(1,0);
+
+    return det_;
+
+}
+
+
+complex<double> Hamiltonian::Get_U_mat_NonAbelian(int mx_left, int my_left, int mx_right, int my_right, Mat_1_int Bands_){
+
+
+    int n_left_HF, n_right_HF, nx_left_HF, ny_left_HF, nx_right_HF, ny_right_HF;
+    nx_left_HF=mx_left%l1_; nx_right_HF=mx_right%l1_;
+    ny_left_HF=my_left%l2_; ny_right_HF=my_right%l2_;
+    n_right_HF = nx_right_HF + ny_right_HF*(l1_);
+    n_left_HF = nx_left_HF + ny_left_HF*(l1_);
+
+    int n_left, n_right;
+    n_right = mx_right + my_right*(l1_);
+    n_left = mx_left + my_left*(l1_);
+
+    complex<double> U_mat_val=0.0;
+    int NBands = Bands_.size();
+
+    Matrix<complex<double>> Overlap_Mat;
+    Overlap_Mat.resize(NBands,NBands);
+
+
+    for(int row_=0;row_<NBands;row_++){
+    for(int col_=0;col_<NBands;col_++){
+    Overlap_Mat(row_,col_)=0.0;
+
+
+    int q_kSL_ind_left = Inverse_kSublattice_mapping[n_left_HF].first;
+    int q_kSL_internal_ind_left = Inverse_kSublattice_mapping[n_left_HF].second;
+    int q_kSL_ind_right = Inverse_kSublattice_mapping[n_right_HF].first;
+    int q_kSL_internal_ind_right = Inverse_kSublattice_mapping[n_right_HF].second;
+
+    for(int band_n=0;band_n<Nbands;band_n++){
+    for(int spin=0;spin<2;spin++){
+    for(int band_np=0;band_np<Nbands;band_np++){
+    for(int spin_p=0;spin_p<2;spin_p++){
+
+    int col_val_left =  q_kSL_internal_ind_left +
+                    k_sublattices[q_kSL_ind_left].size()*band_n +
+                    k_sublattices[q_kSL_ind_left].size()*Nbands*spin;
+
+    int col_val_right =  q_kSL_internal_ind_right +
+                    k_sublattices[q_kSL_ind_right].size()*band_np +
+                    k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
+
+
+     Overlap_Mat(row_, col_) += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+            conj(EigVectors[q_kSL_ind_left](col_val_left,Bands_[row_]))*
+            (EigVectors[q_kSL_ind_right](col_val_right,Bands_[col_]));
+    }}
+    }}
+
+
+    }}
+
+
+    U_mat_val = Determinant(Overlap_Mat);
+
+    return U_mat_val;
+}
+
+
+
+void Hamiltonian::Calculate_Band_Projector(Mat_1_int Bands_, int nx_, int ny_, Mat_2_Complex_doub & Projector_full){
+
+
+    int n_ind = nx_ + ny_*(l1_);
+    int q_kSL_ind = Inverse_kSublattice_mapping[n_ind].first;
+    int q_kSL_internal_ind = Inverse_kSublattice_mapping[n_ind].second;
+
+//Projector_band_resolved.resize(Bands_.size());
+//for(int m=0;m<Bands_.size();m+){
+//   Projector_band_resolved[m].resize(G_grid_L1*G_grid_L2*2);
+//   for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+//   Projector_band_resolved[m][comp1_].resize(G_grid_L1*G_grid_L2*2);
+//   }
+//}
+
+
+Projector_full.resize(G_grid_L1*G_grid_L2*2);
+for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+Projector_full[comp1_].resize(G_grid_L1*G_grid_L2*2);
+for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+  Projector_full[comp1_][comp2_]=0.0;
+}
+}
+
+for(int m=0;m<Bands_.size();m++){
+    for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+    for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+
+    //Projector_band_resolved[m][comp1_][comp2_]=0.0;
+    for(int n=0;n<Nbands;n++){
+    for(int spin=0;spin<2;spin++){
+        int col_val =  q_kSL_internal_ind +
+                            k_sublattices[q_kSL_ind].size()*n +
+                            k_sublattices[q_kSL_ind].size()*Nbands*spin;
+
+        for(int n_p=0;n_p<Nbands;n_p++){
+        for(int spin_p=0;spin_p<2;spin_p++){
+        int col_val_p =  q_kSL_internal_ind +
+                            k_sublattices[q_kSL_ind].size()*n_p +
+                            k_sublattices[q_kSL_ind].size()*Nbands*spin_p;
+
+    Projector_full[comp1_][comp2_] +=
+            BlochStates[spin_p][n_p][nx_+ny_*(l1_)][comp1_]*
+            conj(BlochStates[spin][n][nx_+ny_*(l1_)][comp2_])*
+            conj(EigVectors[q_kSL_ind](col_val,Bands_[m]))*
+            (EigVectors[q_kSL_ind](col_val_p,Bands_[m]));
+
+
+
+        }}
+    }}
+}}
+
+}
+
+
+}
+
+
+void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
+
+    assert(abs(Parameters_.NMat_det)==1);
+
+    int L1_,L2_;
+    L1_=l1_; //along G1 (b6)
+    L2_=l2_; //along G2 (b2)
+
+
+//    Mat_2_Complex_doub g_metric;
+//    g_metric.resize(2);
+//    for(int alpha=0;alpha<2;alpha++){
+//    g_metric[alpha].resize(2);
+//    }
+
+    int NBands_in_a_set=2;
+    int N_bands_Chern =  Nbands*2; //2 here for spin;
+    int N_Sets=int(N_bands_Chern/NBands_in_a_set);
+
+    int n_p_alpha_x, n_p_alpha_y;
+    int n_p_beta_x,  n_p_beta_y;
+
+    Mat_2_Complex_doub P_k, P_k_plus_alpha, P_k_plus_beta;
+    Mat_2_Complex_doub del_alpha_P, del_beta_P;
+    Mat_2_Complex_doub prod_P;
+    Mat_2_Complex_doub prod_P_Berry;
+
+
+    del_alpha_P.resize(G_grid_L1*G_grid_L2*2);
+    del_beta_P.resize(G_grid_L1*G_grid_L2*2);
+    prod_P.resize(G_grid_L1*G_grid_L2*2);
+    prod_P_Berry.resize(G_grid_L1*G_grid_L2*2);
+    for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+    del_alpha_P[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    del_beta_P[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    prod_P[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    prod_P_Berry[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    }
+
+    for(int alpha=0;alpha<2;alpha++){
+    for(int beta=0;beta<2;beta++){
+
+
+    for (int band_set = 0; band_set < N_Sets; band_set++)
+    {
+
+        string File_metric_str = "QGeometry_"+to_string(alpha)+"_"+to_string(beta)+
+                                 "BandSet_" +to_string(band_set)+ ".txt";
+        ofstream File_metric_out(File_metric_str.c_str());
+
+        complex<double> g_trace=0.0;
+        complex<double> b_trace=0.0;
+
+
+        Mat_1_int Bands_;
+        for(int b=0;b<NBands_in_a_set;b++){
+        Bands_.push_back(band_set*NBands_in_a_set + b);
+        }
+
+
+        for (int nx = 0; nx < L1_; nx++)
+        {
+            for (int ny = 0; ny < L2_; ny++)
+            {
+
+                    n_p_alpha_x = (nx + (1-alpha))%L1_;
+                    n_p_alpha_y = (ny + (alpha))%L2_;
+
+                        n_p_beta_x = (nx + (1-beta))%L1_;
+                        n_p_beta_y = (ny + (beta))%L2_;
+
+
+                        Calculate_Band_Projector(Bands_,nx,ny,P_k);
+                        Calculate_Band_Projector(Bands_,n_p_alpha_x,n_p_alpha_y,P_k_plus_alpha);
+                        Calculate_Band_Projector(Bands_,n_p_beta_x,n_p_beta_y,P_k_plus_beta);
+
+
+                        for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+                            for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+                        del_alpha_P[comp1_][comp2_] = P_k_plus_alpha[comp1_][comp2_] - P_k[comp1_][comp2_];
+                        del_beta_P[comp1_][comp2_] = P_k_plus_beta[comp1_][comp2_] - P_k[comp1_][comp2_];
+                            }
+                        }
+
+
+                        g_trace=0.0;
+                        for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+                             prod_P[comp1_][comp1_]=0.0;
+                            for(int comp3_=0;comp3_<G_grid_L1*G_grid_L2*2;comp3_++){
+                            prod_P[comp1_][comp1_] += del_alpha_P[comp1_][comp3_]*del_beta_P[comp3_][comp1_];
+                            }
+                         g_trace +=0.5*prod_P[comp1_][comp1_];
+                        }
+
+
+                        b_trace=0.0;
+                        for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+                             prod_P_Berry[comp1_][comp1_]=0.0;
+                         for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+                            for(int comp3_=0;comp3_<G_grid_L1*G_grid_L2*2;comp3_++){
+                            prod_P_Berry[comp1_][comp1_] += P_k[comp1_][comp2_]*del_alpha_P[comp2_][comp3_]*del_beta_P[comp3_][comp1_]
+                                                            - P_k[comp1_][comp2_]*del_beta_P[comp2_][comp3_]*del_alpha_P[comp3_][comp1_];
+                            }
+                         }
+                         b_trace +=0.5*prod_P_Berry[comp1_][comp1_];
+                        }
+
+                        File_metric_out.precision(10);
+
+                       File_metric_out<<nx<<"  "<<ny<<"  "<<g_trace.real()<<"  "<<g_trace.imag()
+                                     <<"  "<<b_trace.real()<<"  "<<b_trace.imag()<<endl;
+
+                       if(ny==(L2_-1)){//For pm3d corners2color c1
+                           File_metric_out<<nx<<"  "<<ny+1<<"  "<<g_trace.real()<<"  "<<g_trace.imag()
+                                            <<"  "<<b_trace.real()<<"  "<<b_trace.imag()<<endl;
+
+                       }
+
+
+            }
+
+
+            File_metric_out<<endl;
+            if(nx==(L1_-1)){
+                for (int ny = 0; ny < L2_+1; ny++)
+                {
+                    File_metric_out<<nx+1<<"  "<<ny<<"  "<<g_trace.real()<<"  "<<g_trace.imag()
+                                     <<"  "<<b_trace.real()<<"  "<<b_trace.imag()<<endl;
+                }
+            }
+
+        }
+
+
+    }
+
+}}
+
+
+}
+
+void Hamiltonian::Calculate_NonAbelianChernNumbers_HFBands(){
+
+
+    assert(abs(Parameters_.NMat_det)==1);
+
+    int L1_,L2_;
+    L1_=l1_; //along G1 (b6)
+    L2_=l2_; //along G2 (b2)
+
+    int mbz_factor=1;
+    Saving_PBZ_BlochState_Overlaps();
+
+
+    int NBands_in_a_set=2;
+    int N_bands_Chern =  Nbands*2; //2 here for spin;
+    int N_Sets=int(N_bands_Chern/NBands_in_a_set);
+
+//    int q_kSL_ind_left, q_kSL_internal_ind_left;
+//    int q_kSL_ind_right, q_kSL_internal_ind_right;
+
+   Matrix<complex<double>> F_mat; //F1, F2, F3, F4, F5;
+   F_mat.resize(N_bands_Chern, ((L1_))*((L2_)));
+
+   complex<double> Ux_k, Uy_k, Ux_kpy, Uy_kpx;
+   vector<complex<double>> F_bands;
+   F_bands.resize(N_bands_Chern);
+   vector<complex<double>> Chern_num;
+   Chern_num.resize(N_bands_Chern);
+
+   vector<complex<double>> F_bands_orgnl;
+   F_bands_orgnl.resize(N_bands_Chern);
+   vector<complex<double>> Chern_num_orgnl;
+   Chern_num_orgnl.resize(N_bands_Chern);
+   for (int band_set = 0; band_set < N_Sets; band_set++)
+   {
+
+       Mat_1_int Bands_;
+       for(int b=0;b<NBands_in_a_set;b++){
+       Bands_.push_back(band_set*NBands_in_a_set + b);
+       }
+
+       string file_Fk="Fk_band_NonAbelian"+to_string(band_set)+ ".txt";
+       ofstream fl_Fk_out(file_Fk.c_str());
+       fl_Fk_out<<"#nx  ny  tilde_F(nx,ny).real()  tilde_F(nx,ny).imag()  ArgofLog.real()  ArgofLog.imag()"<<endl;
+       fl_Fk_out<<"#Extra momentum point for pm3d corners2color c1"<<endl;
+
+
+       F_bands[band_set] = 0.0;
+       F_bands_orgnl[band_set] = 0.0;
+       // for (int nx = L1_/2; nx < 3*L1_/2; nx++)
+       // {
+       //     for (int ny = L2_/2; ny < 3*L2_/2; ny++)
+       //     {
+
+       for (int nx = 0; nx < L1_; nx++)
+       {
+           for (int ny = 0; ny < L2_; ny++)
+           {
+
+               int n_ind = nx + ny*(L1_); //for k=( 2*nx*Pi/(Lx/2),  2*ny*Pi/(Ly/2) )
+
+               int mx=nx;
+               int my=ny;
+               int mx_left, my_left, mx_right, my_right;
+
+               //U1_k
+               mx_left = mx;
+               my_left = my;
+               mx_right = (mx + 1);// % (mbz_factor*L1_);
+               my_right = my;
+               //Ux_k = Get_U_mat_old(mx_left, my_left, mx_right, my_right, band);
+               Ux_k = Get_U_mat_NonAbelian(mx_left, my_left, mx_right, my_right, Bands_);
+               Ux_k = Ux_k * (1.0 / abs(Ux_k));
+
+
+               //U2_kpx
+               mx_left = (mx + 1);// % (mbz_factor*L1_);
+               my_left = my;
+               mx_right = mx_left;
+               my_right = (my_left + 1);// % (mbz_factor*L2_);
+               //Uy_kpx = Get_U_mat_old(mx_left, my_left, mx_right, my_right, band);
+               Uy_kpx = Get_U_mat_NonAbelian(mx_left, my_left, mx_right, my_right, Bands_);
+               Uy_kpx = Uy_kpx * (1.0 / abs(Uy_kpx));
+
+
+               //U1_kpy
+               mx_left = mx;
+               my_left = (my + 1);// % (mbz_factor*L2_);
+               mx_right = (mx_left + 1);// % (mbz_factor*L1_);
+               my_right = my_left;
+               //Ux_kpy = Get_U_mat_old(mx_left, my_left, mx_right, my_right,band);
+               Ux_kpy = Get_U_mat_NonAbelian(mx_left, my_left, mx_right, my_right, Bands_);
+               Ux_kpy = Ux_kpy * (1.0 / abs(Ux_kpy));
+
+               //U2_k
+               Uy_k = 0;
+               mx_left = mx;
+               my_left = my;
+               mx_right = mx_left;
+               my_right = (my_left + 1);// % (mbz_factor*L2_);
+               //Uy_k = Get_U_mat_old(mx_left, my_left, mx_right, my_right, band);
+               Uy_k = Get_U_mat_NonAbelian(mx_left, my_left, mx_right, my_right, Bands_);
+               Uy_k = Uy_k * (1.0 / abs(Uy_k));
+
+               // Calculating tilde F12
+               F_mat(band_set, n_ind) = log((Ux_k) *
+                                    (Uy_kpx) *
+                                    conj(Ux_kpy) * conj(Uy_k));
+
+               F_bands[band_set] += (F_mat(band_set, n_ind));
+
+
+               fl_Fk_out.precision(10);
+
+               fl_Fk_out<<nx<<"  "<<ny<<"  "<<F_mat(band_set, n_ind).real()<<"  "<<F_mat(band_set, n_ind).imag()<<
+                          "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).real()<<
+                          "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).imag()<<endl;
+
+
+
+
+               if(abs((abs(F_mat(band_set, n_ind).imag()) - PI))<0.001){
+                   cout<<ny<<"  "<<nx<<"  gives Pi for band"<< band_set <<endl;
+                   // assert (abs((abs(F_mat(band, n).imag()) - M_PI))>0.0000001);
+               }
+
+
+               if(ny==(L2_-1)){//For pm3d corners2color c1
+                   fl_Fk_out<<nx<<"  "<<ny+1<<"  "<<F_mat(band_set, n_ind).real()<<"  "<<F_mat(band_set, n_ind).imag()<<
+                              "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).real()<<
+                              "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).imag()<<endl;
+               }
+           }
+
+           if(nx==(L1_)-1){//For pm3d corners2color c1
+               fl_Fk_out<<endl;
+               for(int ny_=0;ny_<L2_;ny_++){
+                   int n_ = nx + L1_*ny_;
+                   fl_Fk_out<<nx+1<<"  "<<ny_<<"  "<<F_mat(band_set, n_).real()<<"  "<<F_mat(band_set, n_).imag()<<
+                              "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).real()<<
+                              "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).imag()<<endl;
+
+                  if(ny_==(L2_)-1){//For pm3d corners2color c1
+                   fl_Fk_out<<nx+1<<"  "<<ny_+1<<"  "<<F_mat(band_set, n_).real()<<"  "<<F_mat(band_set, n_).imag()<<
+                              "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).real()<<
+                              "  "<<(Ux_k*Uy_kpx*conj(Ux_kpy)*conj(Uy_k)).imag()<<endl;
+               }
+               }
+           }
+
+
+           fl_Fk_out<<endl;
+       }
+
+
+       Chern_num[band_set] = (-1.0 * iota_complex / (2 * PI *mbz_factor*mbz_factor)) * F_bands[band_set];
+       // Chern_num_orgnl[band] = (-1.0 * iota_complex / (2 * PI)) * F_bands_orgnl[band];
+       fl_Fk_out<<"#Chern no*2pi*Iota= "<<F_bands[band_set].real()<<"  "<<F_bands[band_set].imag()<<endl;
+       cout << "tilde Chern number [" << band_set << "] = " << Chern_num[band_set].real() << "        " << Chern_num[band_set].imag() << endl;
+       //  cout << "Chern number [" << band << "] = " << Chern_num_orgnl[band].real() << " " << Chern_num_orgnl[band].imag() << endl;
+
+   }
+
+cout<<"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<<endl;
+
+
+
+}
+
+
+
 void Hamiltonian::Calculate_ChernNumbers_HFBands(){
 
     assert(abs(Parameters_.NMat_det)==1);
 
 
     int mbz_factor=1;
-    Saving_BlochState_Overlaps();
+    Saving_PBZ_BlochState_Overlaps();
      int L1_,L2_;
      L1_=l1_; //along G1 (b6)
      L2_=l2_; //along G2 (b2)
@@ -5655,9 +6168,13 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-                 Ux_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
-                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+//                 Ux_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+                Ux_k += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+                       conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+                       (EigVectors[q_kSL_ind_right](col_val_right,band));
+
                 }}
                 }}
                 Ux_k = Ux_k * (1.0 / abs(Ux_k));
@@ -5698,9 +6215,13 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-                 Uy_kpx += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
-                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+//                 Uy_kpx += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+                Uy_kpx += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+                          conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+                          (EigVectors[q_kSL_ind_right](col_val_right,band));
+
                 }}
                 }}
                 Uy_kpx = Uy_kpx * (1.0 / abs(Uy_kpx));
@@ -5741,9 +6262,14 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-                 Ux_kpy += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
-                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+//                 Ux_kpy += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+
+                Ux_kpy += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+                       conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+                       (EigVectors[q_kSL_ind_right](col_val_right,band));
+
                 }}
                 }}
                 Ux_kpy = Ux_kpy * (1.0 / abs(Ux_kpy));
@@ -5783,9 +6309,14 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-                Uy_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+//                Uy_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+
+                Uy_k += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
                         conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
                         (EigVectors[q_kSL_ind_right](col_val_right,band));
+
                 }}
                 }}
                 Uy_k = Uy_k * (1.0 / abs(Uy_k));

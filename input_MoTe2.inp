@@ -22,6 +22,10 @@ omega_param_in_meV=-7.01
 omega2_param_in_meV=11.08
 #-8.5
 
+
+omega0_param_in_meV=0.0
+omega1_param_in_meV=0.0
+
 Grid_moireReciprocalLattice_L1=12
 Grid_moireReciprocalLattice_L2=12
 a_monolayer_in_angstorm=3.472
@@ -34,8 +38,8 @@ Twist_Theta_in_radians=0.0366519
 
 MStar_top_in_RestMass=0.62
 MStar_bottom_in_RestMass=0.62
-moire_BZ_L1=2
-moire_BZ_L2=3
+moire_BZ_L1=6
+moire_BZ_L2=6
 
 
 MagField_ZeemanSplitting=0.0

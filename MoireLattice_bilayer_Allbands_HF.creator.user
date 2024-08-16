@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.5.2, 2024-07-12T20:09:11. -->
+<!-- Written by QtCreator 4.5.2, 2024-08-13T15:58:01. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -165,7 +165,7 @@
     </valuelist>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">input_MoTe2_test.inp</value>
+    <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Arguments">input_MoSe2WithDisplacementField.inp</value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.Executable">/home/nitin/Documents/Codes/MoireLattice_bilayer_Allbands_HF/MoireBands</value>
     <value type="QString" key="ProjectExplorer.CustomExecutableRunConfiguration.WorkingDirectory">%{buildDir}</value>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.DefaultDisplayName">Run /home/nitin/Documents/Codes/MoireLattice_bilayer_Allbands_HF/MoireBands</value>

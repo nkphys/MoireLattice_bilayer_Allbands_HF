@@ -43,10 +43,13 @@ public:
     void Getting_n1_n2_in_Primitive_BZ(int n1, int n2, int &n1_new, int &n2_new, int &g1_off, int &g2_off);
     void Saving_NonInteractingSpectrum();
     void Saving_NonInteractingSpectrum_PrimBZ();
+    void Saving_NonInteractingSpectrum_Range_m1_to_L();
     void Create_PBZ_map();
     void NonInteractingSpectrum_AlongPath(Mat_1_intpair k_path);
     void Calculate_ChernNumbers();
     Mat_1_intpair Get_k_path(int path_no);
+    void Calculate_Band_Projector(int spin_, Mat_1_int Bands_, int nx_, int ny_, Mat_2_Complex_doub & Projector_full);
+    void Calculate_QuantumGeometry_using_Projectors();
 
     Parameters &Parameters_;
     Coordinates_ContinuumModel &Coordinates_;
@@ -68,6 +71,7 @@ public:
 
     
     Mat_4_Complex_doub BlochStates; //[valley(spin)][band][k][G,l]
+    Mat_4_Complex_doub BlochStates_Range_m1_to_L; //[valley(spin)][band][k][G,l]
     Mat_4_Complex_doub BlochStates_PBZ; //[valley(spin)][band][k][G,l]
     Mat_3_doub eigvals; //[valley(spin)][band][k]
     Mat_3_doub eigvals_PBZ; //[valley(spin)][band][k]
@@ -142,6 +146,230 @@ void Hamiltonian_ContinuumModel::Initialize(){
 } // ----------
 
 
+
+
+void Hamiltonian_ContinuumModel::Calculate_Band_Projector(int spin_, Mat_1_int Bands_, int nx_, int ny_, Mat_2_Complex_doub & Projector_full){
+
+
+    int L1_,L2_;
+    L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+    L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+
+    int G_grid_L1 =l1_;
+    int G_grid_L2 =l2_;
+
+    int n_ind = (nx_+1) + (ny_+1)*(L1_+2);
+
+    //int n_ind = (nx_%L1_) + (ny_%L2_)*(L1_);
+
+ //BlochStates[Spin_][band][n_left][comp]
+
+Projector_full.resize(G_grid_L1*G_grid_L2*2);
+for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+Projector_full[comp1_].resize(G_grid_L1*G_grid_L2*2);
+for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+  Projector_full[comp1_][comp2_]=0.0;
+}
+}
+
+
+    for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+    for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+
+    Projector_full[comp1_][comp2_]=0.0;
+for(int m=0;m<Bands_.size();m++){
+
+    Projector_full[comp1_][comp2_] +=
+            BlochStates_Range_m1_to_L[spin_][Bands_[m]][n_ind][comp1_]*
+            conj(BlochStates_Range_m1_to_L[spin_][Bands_[m]][n_ind][comp2_]);
+
+}
+
+
+
+}}
+
+
+
+
+}
+
+void Hamiltonian_ContinuumModel::Calculate_QuantumGeometry_using_Projectors(){
+
+
+    complex<double> Sum_BC;
+
+    int NBands_in_a_set=1;
+    int N_bands_Chern =  Parameters_.N_bands_HF;
+    int N_Sets=int(N_bands_Chern/NBands_in_a_set);
+
+    int L1_,L2_;
+    L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+    L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+
+    int G_grid_L1 =l1_;
+    int G_grid_L2 =l2_;
+
+//    Mat_2_Complex_doub g_metric;
+//    g_metric.resize(2);
+//    for(int alpha=0;alpha<2;alpha++){
+//    g_metric[alpha].resize(2);
+//    }
+
+
+    for(int Spin_=0;Spin_<=1;Spin_++){
+        cout<<"XXXXXXXXXXXXXXX FOR SPIN = "<<Spin_<<" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<<endl;
+
+    int n_p_alpha_x, n_p_alpha_y;
+    int n_p_beta_x,  n_p_beta_y;
+    int n_m_alpha_x, n_m_alpha_y;
+    int n_m_beta_x,  n_m_beta_y;
+
+    Mat_2_Complex_doub P_k, P_k_plus_alpha, P_k_plus_beta, P_k_minus_alpha, P_k_minus_beta;;
+
+    Mat_2_Complex_doub del_alpha_P, del_beta_P;
+    Mat_2_Complex_doub prod_P;
+    Mat_2_Complex_doub prod_P_Berry;
+
+    double dk_alpha, dk_beta;
+
+    del_alpha_P.resize(G_grid_L1*G_grid_L2*2);
+    del_beta_P.resize(G_grid_L1*G_grid_L2*2);
+    prod_P.resize(G_grid_L1*G_grid_L2*2);
+    prod_P_Berry.resize(G_grid_L1*G_grid_L2*2);
+    for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+    del_alpha_P[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    del_beta_P[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    prod_P[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    prod_P_Berry[comp1_].resize(G_grid_L1*G_grid_L2*2);
+    }
+
+    for(int alpha=0;alpha<2;alpha++){
+        if(alpha==0){
+            dk_alpha = (2.0*PI)/(1.0*L1_);
+        }
+        if(alpha==1){
+            dk_alpha = (2.0*PI)/(1.0*L2_);
+        }
+
+    for(int beta=0;beta<2;beta++){
+        if(beta==0){
+            dk_beta = (2.0*PI)/(1.0*L1_);
+        }
+        if(beta==1){
+            dk_beta = (2.0*PI)/(1.0*L2_);
+        }
+
+    for (int band_set = 0; band_set < N_Sets; band_set++)
+    {
+
+        Sum_BC=0.0;
+        string File_metric_str = "Non_Int_QGeometry_"+to_string(alpha)+"_"+to_string(beta)+
+                                 "BandSet_" +to_string(band_set)+ "Spin_" +to_string(Spin_)+".txt";
+        ofstream File_metric_out(File_metric_str.c_str());
+
+        complex<double> g_trace=0.0;
+        complex<double> b_trace=0.0;
+
+
+        Mat_1_int Bands_;
+        for(int b=0;b<NBands_in_a_set;b++){
+        Bands_.push_back(band_set*NBands_in_a_set + b);
+        }
+
+
+        for (int nx = 0; nx < L1_; nx++)
+        {
+            for (int ny = 0; ny < L2_; ny++)
+            {
+
+                    n_p_alpha_x = (nx + (1-alpha));//%L1_;
+                    n_p_alpha_y = (ny + (alpha));//%L2_;
+
+                        n_p_beta_x = (nx + (1-beta));//%L1_;
+                        n_p_beta_y = (ny + (beta));//%L2_;
+
+                        n_m_alpha_x = (nx - (1-alpha));//%L1_;
+                        n_m_alpha_y = (ny - (alpha));//%L2_;
+
+                        n_m_beta_x = (nx - (1-beta));//%L1_;
+                        n_m_beta_y = (ny - (beta));//%L2_;
+
+
+                        Calculate_Band_Projector(Spin_, Bands_,nx,ny,P_k);
+                        Calculate_Band_Projector(Spin_,Bands_,n_p_alpha_x,n_p_alpha_y,P_k_plus_alpha);
+                        Calculate_Band_Projector(Spin_,Bands_,n_p_beta_x,n_p_beta_y,P_k_plus_beta);
+                        Calculate_Band_Projector(Spin_,Bands_,n_m_alpha_x,n_m_alpha_y,P_k_minus_alpha);
+                        Calculate_Band_Projector(Spin_,Bands_,n_m_beta_x,n_m_beta_y,P_k_minus_beta);
+
+                        for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+                            for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+                        del_alpha_P[comp1_][comp2_] = (0.5/dk_alpha)*(P_k_plus_alpha[comp1_][comp2_] - P_k_minus_alpha[comp1_][comp2_]);
+                        del_beta_P[comp1_][comp2_] = (0.5/dk_beta)*(P_k_plus_beta[comp1_][comp2_] - P_k_minus_beta[comp1_][comp2_]);
+                            }
+                        }
+
+
+                        g_trace=0.0;
+                        for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+                             prod_P[comp1_][comp1_]=0.0;
+                            for(int comp3_=0;comp3_<G_grid_L1*G_grid_L2*2;comp3_++){
+                            prod_P[comp1_][comp1_] += del_alpha_P[comp1_][comp3_]*del_beta_P[comp3_][comp1_];
+                            }
+                         g_trace +=0.5*prod_P[comp1_][comp1_];
+                        }
+
+
+                        b_trace=0.0;
+                        for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
+                             prod_P_Berry[comp1_][comp1_]=0.0;
+                         for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
+                            for(int comp3_=0;comp3_<G_grid_L1*G_grid_L2*2;comp3_++){
+                            prod_P_Berry[comp1_][comp1_] += P_k[comp1_][comp2_]*del_alpha_P[comp2_][comp3_]*del_beta_P[comp3_][comp1_]
+                                                            - P_k[comp1_][comp2_]*del_beta_P[comp2_][comp3_]*del_alpha_P[comp3_][comp1_];
+                            }
+                         }
+                         b_trace +=1.0*prod_P_Berry[comp1_][comp1_];
+                        }
+                        Sum_BC += b_trace;
+
+                        File_metric_out.precision(10);
+
+                       File_metric_out<<nx<<"  "<<ny<<"  "<<g_trace.real()<<"  "<<g_trace.imag()
+                                     <<"  "<<b_trace.real()<<"  "<<b_trace.imag()<<endl;
+
+                       if(ny==(L2_-1)){//For pm3d corners2color c1
+                           File_metric_out<<nx<<"  "<<ny+1<<"  "<<g_trace.real()<<"  "<<g_trace.imag()
+                                            <<"  "<<b_trace.real()<<"  "<<b_trace.imag()<<endl;
+
+                       }
+
+
+            }
+
+            File_metric_out<<endl;
+            if(nx==(L1_-1)){
+                for (int ny = 0; ny < L2_+1; ny++)
+                {
+                    File_metric_out<<nx+1<<"  "<<ny<<"  "<<g_trace.real()<<"  "<<g_trace.imag()
+                                     <<"  "<<b_trace.real()<<"  "<<b_trace.imag()<<endl;
+                }
+            }
+
+        }
+        cout<<"Sum_BC alpha="<<alpha<<" beta="<<beta<<" band_set="<<band_set<<" : "<<Sum_BC.real()<<"  "<<Sum_BC.imag()<<"  "<<(Sum_BC.imag()*(2.0*PI*2.0*PI))/(PI*L1_*L2_)<<endl;
+
+
+    }
+
+}}
+
+
+    }//Spin
+
+}
+
+
 void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
 
 
@@ -153,8 +381,11 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
 
 
     for(int Spin_=0;Spin_<=1;Spin_++){
+
+
         cout<<"XXXXXXXXXXXXXXX FOR SPIN = "<<Spin_<<" XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"<<endl;
-    Matrix<complex<double>> F_mat; //F1, F2, F3, F4, F5;
+
+        Matrix<complex<double>> F_mat; //F1, F2, F3, F4, F5;
     F_mat.resize(N_bands_Chern, ((mbz_factor*L1_)+1)*((mbz_factor*L2_)+1));
 
     complex<double> Ux_k, Uy_k, Ux_kpy, Uy_kpx;
@@ -192,6 +423,8 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
 
                 int n = nx + ny*((mbz_factor*L1_)+1);
                 int n_left, n_right, nx_left, ny_left, nx_right, ny_right;
+                int mx, my, m, m_left, m_right, mx_left, my_left, mx_right, my_right;
+                mx=nx;my=ny;m=mx + my*(L1_);
 
                 //U1_k
                 Ux_k = 0;
@@ -199,10 +432,18 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                 nx_right = (nx + 1);// % (mbz_factor*L1_);
                 ny_right = ny;
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
+
+
+                m_left=m;
+                mx_right = (mx + 1)%(L1_);
+                my_right = my;
+                m_right = mx_right + my_right*(L1_);
                 for (int comp = 0; comp < ns_*2; comp++)
                 {
                     Ux_k += conj(BlochStates[Spin_][band][n_left][comp])*
                             BlochStates[Spin_][band][n_right][comp];
+//                    Ux_k += conj(BlochStates_PBZ[Spin_][band][m_left][comp])*
+//                            BlochStates_PBZ[Spin_][band][m_right][comp];
                 }
                 Ux_k = Ux_k * (1.0 / abs(Ux_k));
 
@@ -214,10 +455,22 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                 nx_right = nx_left;
                 ny_right = (ny_left + 1);// % (mbz_factor*L2_);
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
+
+                mx_left = (mx + 1)% (mbz_factor*L1_);
+                my_left = my;
+                m_left = mx_left + my_left*((mbz_factor*L1_));
+                mx_right = mx_left;
+                my_right = (my_left + 1)% (mbz_factor*L2_);
+                m_right = mx_right + my_right*((mbz_factor*L1_));
+
+
                 for (int comp = 0; comp < 2*ns_; comp++)
                 {
                     Uy_kpx += conj(BlochStates[Spin_][band][n_left][comp])*
                             BlochStates[Spin_][band][n_right][comp];
+
+//                    Uy_kpx += conj(BlochStates_PBZ[Spin_][band][m_left][comp])*
+//                            BlochStates_PBZ[Spin_][band][m_right][comp];
                 }
                 Uy_kpx = Uy_kpx * (1.0 / abs(Uy_kpx));
 
@@ -229,10 +482,20 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                 nx_right = (nx_left + 1);// % (mbz_factor*L1_);
                 ny_right = ny_left;
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
+
+                mx_left = mx;
+                my_left = (my + 1)% (mbz_factor*L2_);
+                m_left = mx_left + my_left*((mbz_factor*L1_));
+                mx_right = (mx_left + 1)% (mbz_factor*L1_);
+                my_right = my_left;
+                m_right = mx_right + my_right*((mbz_factor*L1_));
                 for (int comp = 0; comp < 2*ns_; comp++)
                 {
                     Ux_kpy += conj(BlochStates[Spin_][band][n_left][comp])*
                             BlochStates[Spin_][band][n_right][comp];
+
+//                    Ux_kpy += conj(BlochStates_PBZ[Spin_][band][m_left][comp])*
+//                            BlochStates_PBZ[Spin_][band][m_right][comp];
                 }
                 Ux_kpy = Ux_kpy * (1.0 / abs(Ux_kpy));
 
@@ -244,10 +507,20 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                 nx_right = nx_left;
                 ny_right = (ny_left + 1);// % (mbz_factor*L2_);
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
+
+                mx_left = mx;
+                my_left = my;
+                m_left = mx_left + my_left*((mbz_factor*L1_));
+                mx_right = mx_left;
+                my_right = (my_left + 1)% (mbz_factor*L2_);
+                m_right = mx_right + my_right*((mbz_factor*L1_));
+
                 for (int comp = 0; comp < 2*ns_; comp++)
                 {
                     Uy_k += conj(BlochStates[Spin_][band][n_left][comp])*
                             BlochStates[Spin_][band][n_right][comp];
+//                    Uy_k += conj(BlochStates_PBZ[Spin_][band][m_left][comp])*
+//                            BlochStates_PBZ[Spin_][band][m_right][comp];
                 }
                 Uy_k = Uy_k * (1.0 / abs(Uy_k));
 
@@ -256,6 +529,9 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                                      Uy_kpx *
                                      conj(Ux_kpy) * conj(Uy_k));
 
+
+
+            //    F_mat(band, n) = Uy_kpx;
                 F_bands[band] += F_mat(band, n);
 
 
@@ -573,6 +849,83 @@ void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum_PrimBZ(){
         cout<<n1<<"("<<((mbz_factor*L1_))<<")  "<<n2<<"("<<((mbz_factor*L2_))<<")  "<<spin<<"(2)  done"<<endl;
         }
         FileBandsOut<<endl;
+        }
+        }
+
+
+}
+
+
+void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum_Range_m1_to_L(){
+
+
+
+        mbz_factor=1;
+
+         int L1_,L2_;
+        L1_=Parameters_.moire_BZ_L1; //along G1 (b6)
+        L2_=Parameters_.moire_BZ_L2; //along G2 (b2)
+        int N_bands = Parameters_.N_bands_HF;
+
+        int comp;
+
+        //REMEMBER TO USE ONLY INSIDE BZ k points for HF not the extra k1, k2 line.
+        BlochStates_Range_m1_to_L.resize(2);
+        for(int spin=0;spin<2;spin++){
+          BlochStates_Range_m1_to_L[spin].resize(N_bands);
+          for(int n=0;n<N_bands;n++){
+            BlochStates_Range_m1_to_L[spin][n].resize(((mbz_factor*L1_)+2)*((mbz_factor*L2_)+2));
+            for(int i=0;i<((mbz_factor*L1_)+2)*((mbz_factor*L2_)+2);i++){  //k_ind
+               BlochStates_Range_m1_to_L[spin][n][i].resize(ns_*Coordinates_.n_orbs_); //G_ind*layer
+            }
+          }
+        }
+
+
+        int k_ind;
+
+        for(int spin=0;spin<=1;spin++){
+
+            valley = 2*spin -1;
+        for(int n1=0;n1<mbz_factor*L1_+2;n1++){
+            for(int n2=0;n2<mbz_factor*L2_+2;n2++){
+            k_ind = n1 + ((mbz_factor*L1_)+2)*n2;
+
+        //kx_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(1.0/(sqrt(3)*L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(sqrt(3)*L2_)));
+        //ky_=(2.0*PI/Parameters_.a_moire)*((n1-(mbz_factor*L1_/2))*(-1.0/(L1_))  +  (n2-(mbz_factor*L2_/2))*(1.0/(L2_)));
+
+       // Getting_kx_ky_in_Primitive_BZ(kx_, ky_, n1, n2);
+        kx_=(2.0*PI/Parameters_.a_moire)*((n1-1)*(1.0/(sqrt(3)*L1_))  +  (n2-1)*(1.0/(sqrt(3)*L2_)));
+        ky_=(2.0*PI/Parameters_.a_moire)*((n1-1)*(-1.0/(L1_))  +  (n2-1)*(1.0/(L2_)));
+
+        HTBCreate();
+//        string filename = "Hamil_ContModel_n1_n2_" + to_string(n1) +"_"+to_string(n2)+ "_spin" + to_string(spin) +".txt";
+//        Ham_.print_in_file(filename, 4);
+
+        char Dflag='V';
+        Diagonalize(Dflag);
+
+        for(int n=0;n<N_bands;n++){
+
+   //  string file_BlochState="BlochState_spin"+to_string(spin)+"_band"+to_string(n)+"k_mbz_"+to_string(n1)+"_"+to_string(n2)+".txt";
+//  ofstream fl_BlochState_out(file_BlochState.c_str());
+// fl_BlochState_out<<"#G1  G2   unk(layer=0).real  imag   unk(layer=1).real  imag"<<endl;
+            for(int i1=0;i1<l1_;i1++){
+                for(int i2=0;i2<l2_;i2++){
+                   // fl_BlochState_out<<i1<<" "<<i2<<"  ";
+                for(int orb=0;orb< Coordinates_.n_orbs_ ;orb++){//layer
+                comp=Coordinates_.Nbasis(i1, i2, orb);
+                BlochStates_Range_m1_to_L[spin][n][k_ind][comp]=Ham_(comp,n);
+                // fl_BlochState_out<<BlochStates[spin][n][k_ind][comp].real()<<"  "<<BlochStates[spin][n][k_ind][comp].imag()<<"  ";
+                }
+                // fl_BlochState_out<<endl;
+            }
+            // fl_BlochState_out<<endl;
+        }
+        }
+
+        cout<<n1<<"("<<((mbz_factor*L1_)+2)<<")  "<<n2<<"("<<((mbz_factor*L2_)+2)<<")  "<<spin<<"(2)  done"<<endl;
+        }
         }
         }
 
