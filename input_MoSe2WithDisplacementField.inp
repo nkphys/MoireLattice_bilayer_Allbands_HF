@@ -30,8 +30,8 @@ MStar_top_in_RestMass=1.17
 moire_BZ_L1=6
 moire_BZ_L2=6
 
-Layer_Potential_bottom_Vz_in_meV=530.0
-Layer_Potential_top_Vz_in_meV=-530.0
+Layer_Potential_bottom_Vz_in_meV=30.0
+Layer_Potential_top_Vz_in_meV=-30.0
 
 Psi_param_in_radians=2.2
 V_param_bottom_in_meV=4.8
@@ -76,5 +76,5 @@ SimpleMixing_alpha=0.5
 Anderson_mixing_m=10
 
 Max_HFIterations=10000
-RandomSeed=1
+RandomSeed=2
 

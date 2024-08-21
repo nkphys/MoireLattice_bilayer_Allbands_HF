@@ -5463,13 +5463,13 @@ for(int col_val=0;col_val<OParams_new[kSL_ind].n_col();col_val++){
 
 
     //One extra iteration
-    if(false){
+    if(!true){
     Update_Hartree_Coefficients();
     Update_Fock_Coefficients();
     mu_old=mu_;
     for(int kset_ind=0;kset_ind<k_sublattices.size();kset_ind++){
 
-        Parameters_.MagField_ZeemanSplitting=0.0;
+        Parameters_.MagField_ZeemanSplitting=2.0;
         Create_Hamiltonian(kset_ind);
         char Dflag='V';
 
@@ -5510,12 +5510,12 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     Print_HF_Bands();
 
     if(abs(Parameters_.NMat_det)==1){
-    Calculate_ChernNumbers_HFBands();
+   // Calculate_ChernNumbers_HFBands();
     cout<<"-------Non Abelian Chern number---------"<<endl;
-    Calculate_NonAbelianChernNumbers_HFBands();
+   // Calculate_NonAbelianChernNumbers_HFBands();
     cout<<"-----------------------------------------"<<endl;
 
-    Calculate_QuantumGeometry_using_Projectors();
+    //Calculate_QuantumGeometry_using_Projectors();
 
     }
 
@@ -5686,9 +5686,14 @@ complex<double> Hamiltonian::Get_U_mat_NonAbelian(int mx_left, int my_left, int 
                     k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-     Overlap_Mat(row_, col_) += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
-            conj(EigVectors[q_kSL_ind_left](col_val_left,Bands_[row_]))*
-            (EigVectors[q_kSL_ind_right](col_val_right,Bands_[col_]));
+//     Overlap_Mat(row_, col_) += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+//            conj(EigVectors[q_kSL_ind_left](col_val_left,Bands_[row_]))*
+//            (EigVectors[q_kSL_ind_right](col_val_right,Bands_[col_]));
+
+    Overlap_Mat(row_, col_) += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+           conj(EigVectors[q_kSL_ind_left](col_val_left,Bands_[row_]))*
+           (EigVectors[q_kSL_ind_right](col_val_right,Bands_[col_]));
+
     }}
     }}
 
@@ -5732,28 +5737,37 @@ for(int m=0;m<Bands_.size();m++){
     for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
 
     //Projector_band_resolved[m][comp1_][comp2_]=0.0;
-    for(int n=0;n<Nbands;n++){
-    for(int spin=0;spin<2;spin++){
-        int col_val =  q_kSL_internal_ind +
-                            k_sublattices[q_kSL_ind].size()*n +
-                            k_sublattices[q_kSL_ind].size()*Nbands*spin;
+//    for(int n=0;n<Nbands;n++){
+//    for(int spin=0;spin<2;spin++){
+//        int col_val =  q_kSL_internal_ind +
+//                            k_sublattices[q_kSL_ind].size()*n +
+//                            k_sublattices[q_kSL_ind].size()*Nbands*spin;
 
-        for(int n_p=0;n_p<Nbands;n_p++){
-        for(int spin_p=0;spin_p<2;spin_p++){
-        int col_val_p =  q_kSL_internal_ind +
-                            k_sublattices[q_kSL_ind].size()*n_p +
-                            k_sublattices[q_kSL_ind].size()*Nbands*spin_p;
+//        for(int n_p=0;n_p<Nbands;n_p++){
+//        for(int spin_p=0;spin_p<2;spin_p++){
+//        int col_val_p =  q_kSL_internal_ind +
+//                            k_sublattices[q_kSL_ind].size()*n_p +
+//                            k_sublattices[q_kSL_ind].size()*Nbands*spin_p;
 
-    Projector_full[comp1_][comp2_] +=
-            BlochStates[spin_p][n_p][nx_+ny_*(l1_)][comp1_]*
-            conj(BlochStates[spin][n][nx_+ny_*(l1_)][comp2_])*
-            conj(EigVectors[q_kSL_ind](col_val,Bands_[m]))*
-            (EigVectors[q_kSL_ind](col_val_p,Bands_[m]));
+        int n_p,n,spin_p,spin;
+        n_p=0;n=0;spin_p=0;spin=0;
+//    Projector_full[comp1_][comp2_] +=
+//            BlochStates[spin_p][n_p][nx_+ny_*(l1_)][comp1_]*
+//            conj(BlochStates[spin][n][nx_+ny_*(l1_)][comp2_])*
+//            conj(EigVectors[q_kSL_ind](col_val,Bands_[m]))*
+//            (EigVectors[q_kSL_ind](col_val_p,Bands_[m]));
+
+        Projector_full[comp1_][comp2_] +=
+                BlochStates_old_[spin_p][n_p][nx_+ny_*(l1_+1)][comp1_]*
+                conj(BlochStates_old_[spin][n][nx_+ny_*(l1_+1)][comp2_]);
+
+//                conj(EigVectors[q_kSL_ind](col_val,Bands_[m]))*
+//                (EigVectors[q_kSL_ind](col_val_p,Bands_[m]));
 
 
 
-        }}
-    }}
+//        }}
+//    }}
 }}
 
 }
@@ -5777,7 +5791,7 @@ void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
 //    g_metric[alpha].resize(2);
 //    }
 
-    int NBands_in_a_set=2;
+    int NBands_in_a_set=1;
     int N_bands_Chern =  Nbands*2; //2 here for spin;
     int N_Sets=int(N_bands_Chern/NBands_in_a_set);
 
@@ -5789,6 +5803,9 @@ void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
     Mat_2_Complex_doub prod_P;
     Mat_2_Complex_doub prod_P_Berry;
 
+    complex<double> Sum_BC;
+
+    double dk_alpha, dk_beta;
 
     del_alpha_P.resize(G_grid_L1*G_grid_L2*2);
     del_beta_P.resize(G_grid_L1*G_grid_L2*2);
@@ -5802,13 +5819,26 @@ void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
     }
 
     for(int alpha=0;alpha<2;alpha++){
+        if(alpha==0){
+            dk_alpha = (2.0*PI)/(1.0*L1_);
+        }
+        if(alpha==1){
+            dk_alpha = (2.0*PI)/(1.0*L2_);
+        }
+
     for(int beta=0;beta<2;beta++){
+        if(beta==0){
+            dk_beta = (2.0*PI)/(1.0*L1_);
+        }
+        if(beta==1){
+            dk_beta = (2.0*PI)/(1.0*L2_);
+        }
 
 
     for (int band_set = 0; band_set < N_Sets; band_set++)
     {
 
-        string File_metric_str = "QGeometry_"+to_string(alpha)+"_"+to_string(beta)+
+        string File_metric_str = "HF_QGeometry_"+to_string(alpha)+"_"+to_string(beta)+
                                  "BandSet_" +to_string(band_set)+ ".txt";
         ofstream File_metric_out(File_metric_str.c_str());
 
@@ -5821,17 +5851,17 @@ void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
         Bands_.push_back(band_set*NBands_in_a_set + b);
         }
 
-
+        Sum_BC=0.0;
         for (int nx = 0; nx < L1_; nx++)
         {
             for (int ny = 0; ny < L2_; ny++)
             {
 
-                    n_p_alpha_x = (nx + (1-alpha))%L1_;
-                    n_p_alpha_y = (ny + (alpha))%L2_;
+                    n_p_alpha_x = (nx + (1-alpha));//%L1_;
+                    n_p_alpha_y = (ny + (alpha));//%L2_;
 
-                        n_p_beta_x = (nx + (1-beta))%L1_;
-                        n_p_beta_y = (ny + (beta))%L2_;
+                        n_p_beta_x = (nx + (1-beta));//%L1_;
+                        n_p_beta_y = (ny + (beta));//%L2_;
 
 
                         Calculate_Band_Projector(Bands_,nx,ny,P_k);
@@ -5841,8 +5871,8 @@ void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
 
                         for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
                             for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
-                        del_alpha_P[comp1_][comp2_] = P_k_plus_alpha[comp1_][comp2_] - P_k[comp1_][comp2_];
-                        del_beta_P[comp1_][comp2_] = P_k_plus_beta[comp1_][comp2_] - P_k[comp1_][comp2_];
+                        del_alpha_P[comp1_][comp2_] = (1.0/dk_alpha)*(P_k_plus_alpha[comp1_][comp2_] - P_k[comp1_][comp2_]);
+                        del_beta_P[comp1_][comp2_] = (1.0/dk_beta)*(P_k_plus_beta[comp1_][comp2_] - P_k[comp1_][comp2_]);
                             }
                         }
 
@@ -5866,9 +5896,9 @@ void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
                                                             - P_k[comp1_][comp2_]*del_beta_P[comp2_][comp3_]*del_alpha_P[comp3_][comp1_];
                             }
                          }
-                         b_trace +=0.5*prod_P_Berry[comp1_][comp1_];
+                         b_trace +=1.0*prod_P_Berry[comp1_][comp1_];
                         }
-
+                        Sum_BC += b_trace;
                         File_metric_out.precision(10);
 
                        File_metric_out<<nx<<"  "<<ny<<"  "<<g_trace.real()<<"  "<<g_trace.imag()
@@ -5895,6 +5925,7 @@ void Hamiltonian::Calculate_QuantumGeometry_using_Projectors(){
 
         }
 
+        cout<<"Sum_BC alpha="<<alpha<<" beta="<<beta<<" band_set="<<band_set<<" : "<<Sum_BC.real()<<"  "<<Sum_BC.imag()<<"  "<<(Sum_BC.imag()*(2.0*PI*2.0*PI))/(2.0*PI*L1_*L2_)<<endl;
 
     }
 
@@ -5913,7 +5944,8 @@ void Hamiltonian::Calculate_NonAbelianChernNumbers_HFBands(){
     L2_=l2_; //along G2 (b2)
 
     int mbz_factor=1;
-    Saving_PBZ_BlochState_Overlaps();
+    //Saving_BlochState_Overlaps();
+    //Saving_PBZ_BlochState_Overlaps();
 
 
     int NBands_in_a_set=2;
@@ -5944,7 +5976,7 @@ void Hamiltonian::Calculate_NonAbelianChernNumbers_HFBands(){
        Bands_.push_back(band_set*NBands_in_a_set + b);
        }
 
-       string file_Fk="Fk_band_NonAbelian"+to_string(band_set)+ ".txt";
+       string file_Fk="Fk_HF_band_NonAbelian"+to_string(band_set)+ ".txt";
        ofstream fl_Fk_out(file_Fk.c_str());
        fl_Fk_out<<"#nx  ny  tilde_F(nx,ny).real()  tilde_F(nx,ny).imag()  ArgofLog.real()  ArgofLog.imag()"<<endl;
        fl_Fk_out<<"#Extra momentum point for pm3d corners2color c1"<<endl;
@@ -6080,7 +6112,11 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
 
 
     int mbz_factor=1;
-    Saving_PBZ_BlochState_Overlaps();
+
+    Saving_BlochState_Overlaps();
+
+    //Saving_PBZ_BlochState_Overlaps();
+
      int L1_,L2_;
      L1_=l1_; //along G1 (b6)
      L2_=l2_; //along G2 (b2)
@@ -6168,12 +6204,12 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-//                 Ux_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
-//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
-                Ux_k += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
-                       conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                       (EigVectors[q_kSL_ind_right](col_val_right,band));
+                 Ux_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+//                Ux_k += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+//                       conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                       (EigVectors[q_kSL_ind_right](col_val_right,band));
 
                 }}
                 }}
@@ -6215,12 +6251,12 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-//                 Uy_kpx += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
-//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
-                Uy_kpx += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
-                          conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                          (EigVectors[q_kSL_ind_right](col_val_right,band));
+                 Uy_kpx += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+//                Uy_kpx += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+//                          conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                          (EigVectors[q_kSL_ind_right](col_val_right,band));
 
                 }}
                 }}
@@ -6262,13 +6298,13 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-//                 Ux_kpy += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
-//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
+                 Ux_kpy += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
+                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+                        (EigVectors[q_kSL_ind_right](col_val_right,band));
 
-                Ux_kpy += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
-                       conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-                       (EigVectors[q_kSL_ind_right](col_val_right,band));
+//                Ux_kpy += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+//                       conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                       (EigVectors[q_kSL_ind_right](col_val_right,band));
 
                 }}
                 }}
@@ -6309,13 +6345,13 @@ void Hamiltonian::Calculate_ChernNumbers_HFBands(){
                                 k_sublattices[q_kSL_ind_right].size()*Nbands*spin_p;
 
 
-//                Uy_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
-//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
-//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
-
-                Uy_k += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+                Uy_k += BO[band_n][spin][n_left][band_np][spin_p][n_right]*
                         conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
                         (EigVectors[q_kSL_ind_right](col_val_right,band));
+
+//                Uy_k += BO_PBZ[band_n][spin][n_left_HF][band_np][spin_p][n_right_HF]*
+//                        conj(EigVectors[q_kSL_ind_left](col_val_left,band))*
+//                        (EigVectors[q_kSL_ind_right](col_val_right,band));
 
                 }}
                 }}
@@ -6393,6 +6429,8 @@ void Hamiltonian::Print_HF_Bands(){
 
 string file_bands="Bands_HF"+string(temp_char)+".txt";
 ofstream file_bands_out(file_bands.c_str());
+file_bands_out<<"#index    kx_val   ky_val  E(kx,ky)  overlap(spin=up,layer=top)   overlap(spin=up,layer=bottom)  overlap(spin=dn,layer=top)   overlap(spin=dn,layer=bottom)"<<endl;
+
 
 double overlap_top, overlap_bottom;
 int q_ind1, q_ind2, q_ind;

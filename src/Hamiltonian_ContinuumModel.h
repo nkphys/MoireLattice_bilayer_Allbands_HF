@@ -304,8 +304,10 @@ void Hamiltonian_ContinuumModel::Calculate_QuantumGeometry_using_Projectors(){
 
                         for(int comp1_=0;comp1_<G_grid_L1*G_grid_L2*2;comp1_++){
                             for(int comp2_=0;comp2_<G_grid_L1*G_grid_L2*2;comp2_++){
-                        del_alpha_P[comp1_][comp2_] = (0.5/dk_alpha)*(P_k_plus_alpha[comp1_][comp2_] - P_k_minus_alpha[comp1_][comp2_]);
-                        del_beta_P[comp1_][comp2_] = (0.5/dk_beta)*(P_k_plus_beta[comp1_][comp2_] - P_k_minus_beta[comp1_][comp2_]);
+                        //del_alpha_P[comp1_][comp2_] = (0.5/dk_alpha)*(P_k_plus_alpha[comp1_][comp2_] - P_k_minus_alpha[comp1_][comp2_]);
+                        //del_beta_P[comp1_][comp2_] = (0.5/dk_beta)*(P_k_plus_beta[comp1_][comp2_] - P_k_minus_beta[comp1_][comp2_]);
+                        del_alpha_P[comp1_][comp2_] = (1.0/dk_alpha)*(P_k_plus_alpha[comp1_][comp2_] - P_k[comp1_][comp2_]);
+                        del_beta_P[comp1_][comp2_] = (1.0/dk_beta)*(P_k_plus_beta[comp1_][comp2_] - P_k[comp1_][comp2_]);
                             }
                         }
 
@@ -357,7 +359,7 @@ void Hamiltonian_ContinuumModel::Calculate_QuantumGeometry_using_Projectors(){
             }
 
         }
-        cout<<"Sum_BC alpha="<<alpha<<" beta="<<beta<<" band_set="<<band_set<<" : "<<Sum_BC.real()<<"  "<<Sum_BC.imag()<<"  "<<(Sum_BC.imag()*(2.0*PI*2.0*PI))/(PI*L1_*L2_)<<endl;
+        cout<<"Sum_BC alpha="<<alpha<<" beta="<<beta<<" band_set="<<band_set<<" : "<<Sum_BC.real()<<"  "<<Sum_BC.imag()<<"  "<<(Sum_BC.imag()*(2.0*PI*2.0*PI))/(2.0*PI*L1_*L2_)<<endl;
 
 
     }
@@ -429,7 +431,7 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                 //U1_k
                 Ux_k = 0;
                 n_left = n;
-                nx_right = (nx + 1);// % (mbz_factor*L1_);
+                nx_right = (nx + 1);//%(L1_);
                 ny_right = ny;
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
 
@@ -449,11 +451,11 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
 
                 //U2_kpx
                 Uy_kpx = 0;
-                nx_left = (nx + 1);// % (mbz_factor*L1_);
+                nx_left = (nx + 1);//%(L1_);
                 ny_left = ny;
                 n_left = nx_left + ny_left*((mbz_factor*L1_)+1);
                 nx_right = nx_left;
-                ny_right = (ny_left + 1);// % (mbz_factor*L2_);
+                ny_right = (ny_left + 1);//%(L2_);
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
 
                 mx_left = (mx + 1)% (mbz_factor*L1_);
@@ -477,9 +479,9 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                 //U1_kpy
                 Ux_kpy = 0;
                 nx_left = nx;
-                ny_left = (ny + 1);// % (mbz_factor*L2_);
+                ny_left = (ny + 1);//%(L2_);
                 n_left = nx_left + ny_left*((mbz_factor*L1_)+1);
-                nx_right = (nx_left + 1);// % (mbz_factor*L1_);
+                nx_right = (nx_left + 1);//%(L1_);
                 ny_right = ny_left;
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
 
@@ -505,7 +507,7 @@ void Hamiltonian_ContinuumModel::Calculate_ChernNumbers(){
                 ny_left = ny;
                 n_left = nx_left + ny_left*((mbz_factor*L1_)+1);
                 nx_right = nx_left;
-                ny_right = (ny_left + 1);// % (mbz_factor*L2_);
+                ny_right = (ny_left + 1);//%(L2_);
                 n_right = nx_right + ny_right*((mbz_factor*L1_)+1);
 
                 mx_left = mx;
@@ -998,20 +1000,20 @@ void Hamiltonian_ContinuumModel::Saving_NonInteractingSpectrum(){
             FileBandsOut<<eigs_[n]<<"  ";
            eigvals[spin][n][k_ind] = eigs_[n];
 
-   //  string file_BlochState="BlochState_spin"+to_string(spin)+"_band"+to_string(n)+"k_mbz_"+to_string(n1)+"_"+to_string(n2)+".txt";
-//  ofstream fl_BlochState_out(file_BlochState.c_str());
-// fl_BlochState_out<<"#G1  G2   unk(layer=0).real  imag   unk(layer=1).real  imag"<<endl;
+    // string file_BlochState="BlochState_spin"+to_string(spin)+"_band"+to_string(n)+"k_mbz_"+to_string(n1)+"_"+to_string(n2)+".txt";
+  //ofstream fl_BlochState_out(file_BlochState.c_str());
+ //fl_BlochState_out<<"#G1  G2   unk(layer=0).real  imag   unk(layer=1).real  imag"<<endl;
             for(int i1=0;i1<l1_;i1++){
                 for(int i2=0;i2<l2_;i2++){
-                   // fl_BlochState_out<<i1<<" "<<i2<<"  "; 
+                //    fl_BlochState_out<<i1<<" "<<i2<<"  ";
                 for(int orb=0;orb< Coordinates_.n_orbs_ ;orb++){//layer
                 comp=Coordinates_.Nbasis(i1, i2, orb);
                 BlochStates[spin][n][k_ind][comp]=Ham_(comp,n);
-                // fl_BlochState_out<<BlochStates[spin][n][k_ind][comp].real()<<"  "<<BlochStates[spin][n][k_ind][comp].imag()<<"  ";
+   //              fl_BlochState_out<<BlochStates[spin][n][k_ind][comp].real()<<"  "<<BlochStates[spin][n][k_ind][comp].imag()<<"  ";
                 }
-                // fl_BlochState_out<<endl;
+     //            fl_BlochState_out<<endl;
             }
-            // fl_BlochState_out<<endl;
+       //      fl_BlochState_out<<endl;
         }
         }
         FileBandsOut<<endl;
