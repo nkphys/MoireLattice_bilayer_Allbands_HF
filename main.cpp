@@ -11,12 +11,12 @@
 #include <cmath>
 #include <cassert>
 using namespace std;
-#include "Matrix.h"
-#include "ParametersEngine.h"
-#include "Coordinates_ContinuumModel.h"
-#include "Hamiltonian_ContinuumModel.h"
-#include "Coordinates.h"
-#include "Hamiltonian_HF.h"
+#include "src/Matrix.h"
+#include "src/ParametersEngine.h"
+#include "src/Coordinates_ContinuumModel.h"
+#include "src/Hamiltonian_ContinuumModel.h"
+#include "src/Coordinates.h"
+#include "src/Hamiltonian_HF.h"
 
 #include "random"
 
@@ -144,7 +144,6 @@ int main(int argc, char *argv[]) {
 
 
 
-
         Coordinates_ContinuumModel Coordinates_(Parameters_.Grid_moireRL_L1, Parameters_.Grid_moireRL_L2, Coord_norbs);
         Hamiltonian_ContinuumModel Hamiltonian_(Parameters_, Coordinates_);
 
@@ -156,7 +155,7 @@ int main(int argc, char *argv[]) {
 
 
 
-         Hamiltonian_.Calculate_ChernNumbers();
+        // Hamiltonian_.Calculate_ChernNumbers();
         // Hamiltonian_.Calculate_QuantumGeometry_using_Projectors();
 
          // assert(false);
@@ -190,7 +189,7 @@ int main(int argc, char *argv[]) {
         //assert(false);
 
         k_path_choosen=k_path;
-        
+
         for(int spin=0;spin<=1;spin++){
         Hamiltonian_.valley = 2*spin -1;
         string file_bands_out="Bands_energy_spin" +to_string(spin)+ "_alongPath.txt";
@@ -210,13 +209,22 @@ int main(int argc, char *argv[]) {
 
         cout << k_path_choosen.size()<<"  "<<index <<"  "<<Hamiltonian_.Ham_.n_col()<<endl;
         FileBandsOut<<index<<"  "<<Hamiltonian_.kx_<<"  "<<Hamiltonian_.ky_<<"   ";
+        Mat_1_doub LayerOverlaps;
         for(int band=0;band<Hamiltonian_.eigs_.size();band++){
-	    Hamiltonian_.Get_Overlap_layers(band);
-            FileBandsOut<<Hamiltonian_.eigs_[band]<<"  "<<Hamiltonian_.Overlap_bottom<<"  "<<Hamiltonian_.Overlap_top<<"  ";
+        Hamiltonian_.Get_Overlap_layers(LayerOverlaps, band);
+
+        FileBandsOut<<Hamiltonian_.eigs_[band]<<"  ";
+        for(int ln=0;ln<Parameters_.max_layer_ind;ln++){
+        FileBandsOut<<LayerOverlaps[ln]<<"  ";
+        }
+
         }
         FileBandsOut<<endl;
         }
     }
+
+
+
 
     }
 

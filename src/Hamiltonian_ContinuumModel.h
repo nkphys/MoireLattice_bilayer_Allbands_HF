@@ -33,12 +33,13 @@ public:
     void HTBCreate_WSe2WS2Bilayer();
     void HTBCreate_GammaValleyHomobilayer();
     void HTBCreate_GammaValleyHomobilayerWithDisplacementField();
+    void HTBCreate_GammaValleyGeneric();
     double NIEnergy(double kx_val, double ky_val);
 
     void Diagonalize(char option);   //::DONE
     void copy_eigs(int i);  //::DONE
     void Get_Overlap_layers(int state_ind);
-
+    void Get_Overlap_layers(Mat_1_doub &AllOverlaps_, int state_ind);
     void Getting_kx_ky_in_Primitive_BZ(double & _kx_, double & _ky_, int n1, int n2, int &n1_new, int &n2_new);
     void Getting_n1_n2_in_Primitive_BZ(int n1, int n2, int &n1_new, int &n2_new, int &g1_off, int &g2_off);
     void Saving_NonInteractingSpectrum();
@@ -1130,6 +1131,33 @@ int Bottom_, Top_;
 	
 }
 
+void Hamiltonian_ContinuumModel::Get_Overlap_layers(Mat_1_doub &AllOverlaps_, int state_ind){
+    //Ham_(comp,eigen_no)
+
+
+    AllOverlaps_.resize(Parameters_.max_layer_ind);
+    assert(Parameters_.No_of_layers == Coordinates_.n_orbs_);
+
+    int comp;
+
+    for(int ln=0;ln<AllOverlaps_.size();ln++){
+        AllOverlaps_[ln]=0.0;
+    }
+
+    for(int i1=0;i1<l1_;i1++){
+        for(int i2=0;i2<l2_;i2++){
+
+            for(int ln=0;ln<AllOverlaps_.size();ln++){
+            comp=Coordinates_.Nbasis(i1, i2, ln);
+            AllOverlaps_[ln] += abs(Ham_(comp,state_ind))*abs(Ham_(comp,state_ind));
+            }
+
+        }
+    }
+
+
+}
+
 
 void Hamiltonian_ContinuumModel::HTBCreate(){
     if(Parameters_.MaterialName=="MoTe2Homobilayer"){
@@ -1150,10 +1178,14 @@ void Hamiltonian_ContinuumModel::HTBCreate(){
        HTBCreate_GammaValleyHomobilayerWithDisplacementField();
     }
 
+    if(Parameters_.MaterialName=="GammaValleyGeneric"){
+        HTBCreate_GammaValleyGeneric();
+
+    }
     if(!(Parameters_.MaterialName=="WSe2WS2Bilayer"  || Parameters_.MaterialName=="MoTe2WSe2Bilayer" || Parameters_.MaterialName=="MoTe2Homobilayer" ||
          Parameters_.MaterialName=="MoSe2Homobilayer" || Parameters_.MaterialName=="MoS2Homobilayer" ||
          Parameters_.MaterialName=="WS2Homobilayer" || Parameters_.MaterialName=="MoSe2HomobilayerWithDisplacementField" || Parameters_.MaterialName=="MoS2HomobilayerWithDisplacementField" ||
-         Parameters_.MaterialName=="WS2HomobilayerWithDisplacementField")
+         Parameters_.MaterialName=="WS2HomobilayerWithDisplacementField" || Parameters_.MaterialName=="GammaValleyGeneric")
     ){
         cout<<"Requires correct MaterialName in input file"<<endl;
         assert(false);
@@ -1857,6 +1889,159 @@ void Hamiltonian_ContinuumModel::HTBCreate_WSe2WS2Bilayer(){
 
 } // ----------
 
+
+
+
+void Hamiltonian_ContinuumModel::HTBCreate_GammaValleyGeneric(){
+
+
+    //This is written in hole operators
+
+
+    Ham_.resize(ns_*Parameters_.No_of_layers ,ns_*Parameters_.No_of_layers); //here 4 is for layers
+
+    double b1x_, b1y_, b6x_, b6y_, b2x_, b2y_;
+
+    //Following PhysRevResearch.5.043173 Gi's convention
+    //now bi=Gi
+    //Grid is along b6 and b2 as in rest subroutines
+
+    //G6+G2
+    b1x_=(2.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G6+G2=G1=b1
+    b1y_=(0.0)*(2.0*PI/Parameters_.a_moire);
+
+    //G6
+    b6x_=(1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G1
+    b6y_=(-1.0)*(2.0*PI/Parameters_.a_moire);
+
+
+    //G2
+    b2x_=(1.0/sqrt(3.0))*(2.0*PI/Parameters_.a_moire); //G2
+    b2y_=(1.0)*(2.0*PI/Parameters_.a_moire);  //G2
+
+    int Bottom_, Top_;
+    Bottom_=0;Top_=1;
+
+    //l1_/2,l2_/2 is the k-point
+
+    double kx_local, ky_local;
+
+    int row, col;
+    int i1_neigh, i2_neigh;
+    for(int i1=0;i1<l1_;i1++){
+        for(int i2=0;i2<l2_;i2++){
+            kx_local = kx_ + (-(l1_/2)+i1)*(b6x_) + (-(l2_/2)+i2)*(b2x_);
+            ky_local = ky_ + (-(l1_/2)+i1)*(b6y_) + (-(l2_/2)+i2)*(b2y_);
+
+            for(int layer_i=0;layer_i<Parameters_.No_of_layers;layer_i++){
+                col=Coordinates_.Nbasis(i1, i2, layer_i);
+
+                row=col;
+                Ham_(row,col) += ((-1.0/Parameters_.MStar_layers[layer_i])*NIEnergy(kx_local, ky_local));
+                Ham_(row,col) +=  -1.0*Parameters_.Vz_layers[layer_i];
+               // Ham_(row,col) += -1.0*Parameters_.V0_mat[layer_i][layer_i];
+
+                for(int layer_j=0;layer_j<Parameters_.No_of_layers;layer_j++){
+                row = Coordinates_.Nbasis(i1, i2, layer_j);
+                Ham_(row,col) += -1.0*Parameters_.V0_mat[layer_i][layer_j];
+                }
+            }
+
+
+
+            //+b1
+            i1_neigh = i1 + 1;
+            i2_neigh = i2 + 1;
+            if(i1_neigh<l1_ && i2_neigh<l2_){//OBC
+            for(int layer_i=0;layer_i<Parameters_.No_of_layers;layer_i++){
+            col=Coordinates_.Nbasis(i1, i2, layer_i);
+
+            for(int layer_j=0;layer_j<Parameters_.No_of_layers;layer_j++){
+            row = Coordinates_.Nbasis(i1_neigh, i2_neigh, layer_j);
+            Ham_(row,col) += -1.0*Parameters_.V1_mat[layer_i][layer_j]*exp(-iota_complex*Parameters_.Psi_param_mat[layer_i][layer_j]);
+            }
+            }
+            }
+
+            //+b3
+            i1_neigh = i1 - 1;
+            i2_neigh = i2;
+            if(i1_neigh>0){//OBC
+                for(int layer_i=0;layer_i<Parameters_.No_of_layers;layer_i++){
+                    col=Coordinates_.Nbasis(i1, i2, layer_i);
+
+                    for(int layer_j=0;layer_j<Parameters_.No_of_layers;layer_j++){
+                        row = Coordinates_.Nbasis(i1_neigh, i2_neigh, layer_j);
+                        Ham_(row,col) += -1.0*Parameters_.V1_mat[layer_i][layer_j]*exp(-iota_complex*Parameters_.Psi_param_mat[layer_i][layer_j]);
+                    }
+                }
+            }
+
+            //+b5
+            i1_neigh = i1;
+            i2_neigh = i2-1;
+            if(i2_neigh>0){//OBC
+                for(int layer_i=0;layer_i<Parameters_.No_of_layers;layer_i++){
+                    col=Coordinates_.Nbasis(i1, i2, layer_i);
+
+                    for(int layer_j=0;layer_j<Parameters_.No_of_layers;layer_j++){
+                        row = Coordinates_.Nbasis(i1_neigh, i2_neigh, layer_j);
+                        Ham_(row,col) += -1.0*Parameters_.V1_mat[layer_i][layer_j]*exp(-iota_complex*Parameters_.Psi_param_mat[layer_i][layer_j]);
+                    }
+                }
+            }
+
+
+            //+b2
+            i1_neigh = i1;
+            i2_neigh = i2 + 1;
+            if(i2_neigh<l2_){//OBC
+                for(int layer_i=0;layer_i<Parameters_.No_of_layers;layer_i++){
+                    col=Coordinates_.Nbasis(i1, i2, layer_i);
+
+                    for(int layer_j=0;layer_j<Parameters_.No_of_layers;layer_j++){
+                        row = Coordinates_.Nbasis(i1_neigh, i2_neigh, layer_j);
+                        Ham_(row,col) += -1.0*Parameters_.V1_mat[layer_i][layer_j]*exp(iota_complex*Parameters_.Psi_param_mat[layer_i][layer_j]);
+                    }
+                }
+            }
+
+            //+b4
+            i1_neigh = i1 - 1;
+            i2_neigh = i2 - 1;
+            if(i1_neigh>0 && i2_neigh>0){//OBC
+                for(int layer_i=0;layer_i<Parameters_.No_of_layers;layer_i++){
+                    col=Coordinates_.Nbasis(i1, i2, layer_i);
+
+                    for(int layer_j=0;layer_j<Parameters_.No_of_layers;layer_j++){
+                        row = Coordinates_.Nbasis(i1_neigh, i2_neigh, layer_j);
+                        Ham_(row,col) += -1.0*Parameters_.V1_mat[layer_i][layer_j]*exp(iota_complex*Parameters_.Psi_param_mat[layer_i][layer_j]);
+                    }
+                }
+            }
+
+            //+b6
+            i1_neigh = i1+1;
+            i2_neigh = i2;
+            if(i1_neigh<l1_){//OBC
+                for(int layer_i=0;layer_i<Parameters_.No_of_layers;layer_i++){
+                    col=Coordinates_.Nbasis(i1, i2, layer_i);
+
+                    for(int layer_j=0;layer_j<Parameters_.No_of_layers;layer_j++){
+                        row = Coordinates_.Nbasis(i1_neigh, i2_neigh, layer_j);
+                        Ham_(row,col) += -1.0*Parameters_.V1_mat[layer_i][layer_j]*exp(iota_complex*Parameters_.Psi_param_mat[layer_i][layer_j]);
+                    }
+                }
+            }
+
+        }
+    }
+
+
+
+
+
+}
 
 
 

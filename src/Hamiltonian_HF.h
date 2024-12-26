@@ -96,6 +96,7 @@ public:
     void Print_HF_Bands();
     Mat_1_intpair Get_k_path(int path_no);
     void Get_layer_overlaps(double &overlap_top, double &overlap_bottom, int band, int spin, int q_ind1, int q_ind2);
+    void Get_layer_overlaps(Mat_1_doub &Alloverlaps_,int band_m, int spin, int q_ind1, int q_ind2);
     void Saving_BlochState_Overlaps();
     void Saving_PBZ_BlochState_Overlaps();
     void Calculate_ChernNumbers_HFBands();
@@ -4444,6 +4445,7 @@ N_layer_tau[layer][spin] += FermiFunction(EigValues[kSL_ind][m])*
 }}
 }}}
 
+/*
 cout<<"No. Fermions ";
 if(layer==BOTTOM_ && spin==spin_up){
 cout<<"BOTTOM SPIN_UP"<<N_layer_tau[layer][spin]<<endl;
@@ -4457,7 +4459,14 @@ cout<<"BOTTOM SPIN_DN"<<N_layer_tau[layer][spin]<<endl;
 if(layer==TOP_ && spin==spin_dn){
 cout<<"TOP SPIN_DN"<<N_layer_tau[layer][spin]<<endl;
 }
+*/
 
+if(spin==spin_up){
+  cout<< "No. Fermions SPIN UP Layer="<<layer<<" : "<<N_layer_tau[layer][spin]<<endl;
+}
+if(spin==spin_dn){
+  cout<< "No. Fermions SPIN DN Layer="<<layer<<" : "<<N_layer_tau[layer][spin]<<endl;
+}
 
 }}
 
@@ -5461,7 +5470,6 @@ for(int col_val=0;col_val<OParams_new[kSL_ind].n_col();col_val++){
 
 
 
-
     //One extra iteration
     if(!true){
     Update_Hartree_Coefficients();
@@ -5528,7 +5536,7 @@ for(int col_val=0;col_val<OParams[kSL_ind].n_col();col_val++){
     string Oparams2_str = "Temp_"+string(temp_char)+"RealSpace_OParams.txt";
 
    // Calculate_RealSpace_OParams_important_positions_new3(Oparams1_str);
-   // Calculate_RealSpace_OParams_new3(Oparams2_str);
+    Calculate_RealSpace_OParams_new3(Oparams2_str);
 
     //Here
     //Kick_OParams(0.01);
@@ -6431,7 +6439,7 @@ string file_bands="Bands_HF"+string(temp_char)+".txt";
 ofstream file_bands_out(file_bands.c_str());
 file_bands_out<<"#index    kx_val   ky_val  E(kx,ky)  overlap(spin=up,layer=top)   overlap(spin=up,layer=bottom)  overlap(spin=dn,layer=top)   overlap(spin=dn,layer=bottom)"<<endl;
 
-
+Mat_1_doub overlaps_;
 double overlap_top, overlap_bottom;
 int q_ind1, q_ind2, q_ind;
 int q1_kSL_ind, q1_kSL_internal_ind;
@@ -6462,12 +6470,70 @@ file_bands_out<<index<<"  "<<kx_val<<"  "<<ky_val<<"  ";
 for(int m=0;m<EigValues[q1_kSL_ind].size();m++){
 file_bands_out<<EigValues[q1_kSL_ind][m]<<"  ";
 for(int spin=0;spin<2;spin++){
-Get_layer_overlaps(overlap_top, overlap_bottom, m, spin, q_ind1_new, q_ind2_new);
-file_bands_out<<"  "<<overlap_top<<"  "<<overlap_bottom<<"  ";
+
+Get_layer_overlaps(overlaps_, m, spin, q_ind1_new, q_ind2_new);
+
+//Get_layer_overlaps(overlap_top, overlap_bottom, m, spin, q_ind1_new, q_ind2_new);
+for(int ln=0;ln<overlaps_.size();ln++){
+file_bands_out<<overlaps_[ln]<<"  ";
+}
+
+//file_bands_out<<"  "<<overlap_top<<"  "<<overlap_bottom<<"  ";
+
 }
 }
 file_bands_out<<endl;
 }
+
+}
+
+
+
+void Hamiltonian::Get_layer_overlaps(Mat_1_doub &Alloverlaps_,int band_m, int spin, int q_ind1, int q_ind2){
+
+int BOTTOM_=0;
+int TOP_=1;
+int comp;
+int q_ind = q_ind1 + l1_*q_ind2;
+int q_kSL_ind, q_kSL_internal_ind;
+q_kSL_ind = Inverse_kSublattice_mapping[q_ind].first;
+q_kSL_internal_ind = Inverse_kSublattice_mapping[q_ind].second;
+int col_val;
+
+Mat_1_doub overlaps_;
+overlaps_.resize(Parameters_.max_layer_ind);
+Alloverlaps_.resize(Parameters_.max_layer_ind);
+
+complex<double> temp_overlap;
+
+for(int layer=0;layer<Parameters_.max_layer_ind;layer++){
+overlaps_[layer]=0.0;
+
+for(int g_ind1=0;g_ind1<G_grid_L1;g_ind1++){
+for(int g_ind2=0;g_ind2<G_grid_L2;g_ind2++){
+
+comp = HamiltonianCont_.Coordinates_.Nbasis(g_ind1, g_ind2, layer);
+
+temp_overlap=0.0;
+for(int n=0;n<BlochStates[spin].size();n++){
+
+col_val = q_kSL_internal_ind +
+          k_sublattices[q_kSL_ind].size()*n +
+          k_sublattices[q_kSL_ind].size()*Nbands*spin;
+
+temp_overlap += BlochStates[spin][n][q_ind][comp]*EigVectors[q_kSL_ind](col_val,band_m) *
+                conj(BlochStates[spin][n][q_ind][comp]*EigVectors[q_kSL_ind](col_val,band_m));
+
+}
+
+overlaps_[layer] += temp_overlap.real();
+
+}}
+
+
+}
+
+Alloverlaps_=overlaps_;
 
 }
 

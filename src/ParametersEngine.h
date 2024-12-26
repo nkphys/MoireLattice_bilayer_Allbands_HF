@@ -8,6 +8,14 @@ public:
 
     double V_param_top,V_param_bottom, Psi_param, a_moire;
     double V2_param_top , V2_param_bottom, omega_param, omega0_param, omega1_param, omega2_param;
+
+
+    int No_of_layers;
+    Mat_1_doub MStar_layers;
+    Mat_1_doub Vz_layers;
+    Mat_2_doub Psi_param_mat, V0_mat, V1_mat;
+
+
     double TwistTheta, a_monolayer, MStar_top, MStar_bottom, eps_DE;
     int Grid_moireRL_L1, Grid_moireRL_L2;
     int moire_BZ_L1, moire_BZ_L2;
@@ -56,16 +64,33 @@ public:
     double matchstring(string file,string match);
     bool matchstring3(string file,string match);
     string matchstring2(string file,string match);
-
+    void Read_mat(Mat_2_doub &MatTemp, int Nrow, int Ncol, string filename);
 
 };
 
+
+
+void Parameters::Read_mat(Mat_2_doub &MatTemp, int Nrow, int Ncol, string filename){
+
+    ifstream file_stream(filename.c_str());
+    MatTemp.resize(Nrow);
+    for(int i=0;i<Nrow;i++){
+    MatTemp[i].resize(Ncol);
+    }
+
+    for(int i=0;i<Nrow;i++){
+    for(int j=0;j<Ncol;j++){
+    file_stream>>MatTemp[i][j];
+    }
+    }
+
+}
 
 void Parameters::Initialize(string inputfile_){
 
 
     cout << "____________________________________" << endl;
-    cout << "Reading the inputfile name: " << inputfile_ << endl;
+    cout << "Reading the inputfile name: '" << inputfile_<<"'"<< endl;
     cout << "____________________________________" << endl;
 
     MaterialName=matchstring2(inputfile_, "MaterialName");
@@ -76,6 +101,37 @@ void Parameters::Initialize(string inputfile_){
     V2_param = matchstring(inputfile_,"V2_param_in_meV");
     V3_param = matchstring(inputfile_,"V3_param_in_meV");
     }
+
+
+    if(MaterialName=="GammaValleyGeneric"){
+     No_of_layers=int(matchstring(inputfile_,"No_of_Layers"));
+     max_layer_ind=No_of_layers-1;
+     MStar_layers.resize(No_of_layers);
+     Vz_layers.resize(No_of_layers);
+
+     string MStar_layers_str=matchstring2(inputfile_,"MStar_layer_in_RestMass");
+     stringstream MStar_layers_ss(MStar_layers_str);
+     for(int l=0;l<No_of_layers;l++){
+     MStar_layers_ss>>MStar_layers[l];
+     }
+
+     string Vz_layers_str=matchstring2(inputfile_,"Layer_Potential_Vz_in_meV");
+     stringstream Vz_layers_ss(Vz_layers_str);
+     for(int l=0;l<No_of_layers;l++){
+         Vz_layers_ss>>Vz_layers[l];
+     }
+
+     string Psi_param_file_str=matchstring2(inputfile_,"Psi_param_in_radians_matrix_file");
+     string V0_param_file_str=matchstring2(inputfile_,"V0_param_in_meV");
+     string V1_param_file_str=matchstring2(inputfile_,"V1_param_in_meV");
+
+     Read_mat(Psi_param_mat, No_of_layers, No_of_layers, Psi_param_file_str);
+     Read_mat(V0_mat, No_of_layers, No_of_layers, V0_param_file_str);
+     Read_mat(V1_mat, No_of_layers, No_of_layers, V1_param_file_str);
+
+    }
+
+
 
     holesdensity_per_moire_unit_cell=matchstring(inputfile_, "holedensity_per_moire_unit_cell");
     Temperature = matchstring(inputfile_, "Temperature_in_Kelvin");
@@ -213,6 +269,9 @@ void Parameters::Initialize(string inputfile_){
     a_top = 3.15;
     a_moire = (a_bottom*a_top)/(a_bottom-a_top);
     }
+    if(MaterialName=="GammaValleyGeneric"){
+        a_moire = a_monolayer/abs(TwistTheta);
+    }
     cout<<"a_moire (in Angstorm)= "<<a_moire<<endl;
 
 
@@ -231,6 +290,9 @@ void Parameters::Initialize(string inputfile_){
             MaterialName=="MoS2HomobilayerWithDisplacementField" ||
             MaterialName=="WS2HomobilayerWithDisplacementField"){
     max_layer_ind=2;
+    }
+    else if(MaterialName=="GammaValleyGeneric"){
+    max_layer_ind=No_of_layers;
     }
     else{
         assert(false);

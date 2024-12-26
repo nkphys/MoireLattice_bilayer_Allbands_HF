@@ -1,0 +1,89 @@
+MaterialName=GammaValleyGeneric
+
+#ABBA_tdbWSe2
+
+
+Grid_moireReciprocalLattice_L1=12
+Grid_moireReciprocalLattice_L2=12
+
+a_monolayer_in_angstorm=3.28
+
+Twist_Theta_in_radians=0.05235987
+
+#3.5=0.06117
+#2.5=0.043633
+#2.0=0.0349065
+#1.5=0.0261799
+#4.5=0.07853975
+
+
+###########NOT USED ##############
+V1_param_in_meV=0
+V2_param_in_meV=0
+V3_param_in_meV=0
+V2_param_top_in_meV=0
+V2_param_bottom_in_meV=0
+Psi_param_in_radians=0
+V_param_bottom_in_meV=0
+V_param_top_in_meV=0
+omega0_param_in_meV=0
+omega1_param_in_meV=0
+omega2_param_in_meV=0
+omega_param_in_meV=0
+MStar_bottom_in_RestMass=0
+MStar_top_in_RestMass=0
+Layer_Potential_bottom_Vz_in_meV=0
+Layer_Potential_top_Vz_in_meV=0
+#################################
+
+
+
+#########Generic multilayer Continuum model ################
+No_of_Layers=4
+MStar_layer_in_RestMass=1.0 1.0 1.0 1.0
+Layer_Potential_Vz_in_meV=0.0 0.0 0.0 0.0
+Psi_param_in_radians_matrix_file=Psi_mat.txt
+V0_param_in_meV=V0_mat.txt
+V1_param_in_meV=V1_mat.txt
+###########################################################
+
+moire_BZ_L1=3
+moire_BZ_L2=3
+
+
+Imposing_SzZero=0
+MagField_ZeemanSplitting=0.0
+
+MagneticUnitCell_NMat_row1=1 0
+MagneticUnitCell_NMat_row2=0 1
+
+No_of_bands_used_for_HartreeFock=2
+eps_DE=20.0
+distance_to_gate_in_angstorm=200
+
+Read_OrderParams=false
+OrderParamsInputFile=OP_6x6_6x6.txt
+OrderParamsOutputFile=OP_Temp0.001_new.txt
+
+OrderParamsReadingType=RealSpace
+OrderParamsReadingDetails_l1_l2_M1_M2=4 4 10 10
+
+
+holedensity_per_moire_unit_cell=2.0
+
+Cooling=1
+Temperature_in_Kelvin=1 0.0001
+HF_convergence_error=0.00000001
+
+Convergence_technique=AndersonMixing
+#AndersonMixing
+#SimpleMixing
+
+SimpleMixing_alpha=0.5
+#alpha*new  + (1-alpha)*old
+
+Anderson_mixing_m=10
+
+Max_HFIterations=10000
+RandomSeed=3
+
